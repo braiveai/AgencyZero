@@ -1,0 +1,56 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  color-scheme: light;
+}
+
+html,
+body {
+  background: theme("colors.paper");
+  color: theme("colors.ink.900");
+  font-feature-settings: "cv11", "ss01";
+  -webkit-font-smoothing: antialiased;
+}
+
+.tnum {
+  font-variant-numeric: tabular-nums lining-nums;
+}
+
+/* range track for native sliders */
+input[type="range"] {
+  -webkit-appearance: none;
+  appearance: none;
+  height: 4px;
+  border-radius: 999px;
+  background: theme("colors.rule");
+  outline: none;
+}
+input[type="range"]::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 18px;
+  height: 18px;
+  border-radius: 999px;
+  background: theme("colors.ink.900");
+  border: 3px solid theme("colors.surface");
+  box-shadow: 0 1px 3px rgba(26, 24, 20, 0.25);
+  cursor: pointer;
+}
+input[type="range"]::-moz-range-thumb {
+  width: 18px;
+  height: 18px;
+  border-radius: 999px;
+  background: theme("colors.ink.900");
+  border: 3px solid theme("colors.surface");
+  cursor: pointer;
+}
+
+.card {
+  @apply bg-surface border border-rule rounded-xl shadow-soft;
+}
+
+.eyebrow {
+  @apply text-[11px] font-semibold uppercase tracking-[0.14em] text-ink-300;
+}
