@@ -25,26 +25,32 @@ Five screens (brief build order S1 → S3 → S2 → S4 → S5):
 |---|---|---|
 | **S1** | `/today` | FY26 verified baseline — monthly volatility, revenue mix, payroll ratio, client concentration. Read-only; establishes trust before any speculation. |
 | **S3** | `/model` | Scenario builder (the centrepiece). Sliders for growth, fee compression, adoption, loaded cost, tooling, FTE-per-stage, owner comp. Live P&L, org shape, $1m floor, tolerance bands. |
-| **S2** | `/value-chain` | The 8-stage chain. Open a stage → process-level cost table with **editable automation levels**; re-level any line and the derived FTE recalculates live. |
+| **S2** | `/value-chain` | **The workshop.** Every process under its stage. For each: is it *required*, *who does it* (multi-select from the staff roster), *how much can AI take*, and *time intensity*. FTE falls out of the answers — no hour estimates. Add/remove processes & staff, autosaves, then **Run the model** saves a "Workshop" scenario. |
 | **S4** | `/horizons` | H1/H2/H3 glide path — attrition-led vs restructure-led, redundancy cost, cumulative profit vs status quo, transition break-even. |
 | **S5** | `/scenarios` | Status Quo / Agency Zero / Middle Path side-by-side + saved scenarios (localStorage). |
 
-## The numbers (derived, not asserted)
+## The numbers (derived from staff allocation, not asserted)
 
-The whole credibility engine is the **automation ladder** (L0–L4) applied per process.
-FTE-at-Zero = Σ residual hours ÷ productive hours — so any single line can be
-challenged live and the org shape absorbs it.
+FTE is **derived from who does what**: each person's FTE splits across the processes
+they're assigned to (weighted by time-intensity), so the map auto-reconciles to
+headcount — no hour estimates. Zero-FTE per process = *required ? todayFTE ×
+human-residual(automatability) : 0*. Cut a process, re-assign a person, or change
+"how much AI can take" and the whole org shape recalculates live.
 
 | | Optimistic | Base | Conservative |
 |---|---|---|---|
-| Zero org (roles) | 5.7 | **7.1** | 8.5 *(the brief's headline = the safe case)* |
-| Zero net profit (Y3) | — | **$2.0m** | $1.80m |
-| People cost | — | $1.02m | $1.22m |
-| Payroll ratio | — | 26% | 31% |
+| Zero org (roles) | ~5.0 | **~6.8** | ~9.0 *(the safe case)* |
+| Zero net profit (Y3) | — | **~$2.06m** | ~$1.74m |
+| Payroll ratio | — | 24% | 32% |
 
-Status Quo drifts to **$0.95m by Year 3** (below the $1m floor) as digital fees
-compress. **Acceptance test (enforced in CI):** Conservative-Zero profit ($1.80m)
-still beats Base-Status-Quo profit ($0.95m). Run `npm test` to prove it.
+Status Quo drifts to **~$0.93m by Year 3** (below the $1m floor) as digital fees
+compress. **Acceptance test (enforced in CI):** Conservative-Zero still beats
+Base-Status-Quo. Run `npm test` (20 tests) to prove it.
+
+The relationship layer (the phone, firefighting, entertainment, supplier & talent
+relationships, training) is modelled explicitly and stays fully human — it's the
+strongest answer to "who would we hire." All process/staff data is a strawman
+built to be corrected live in the workshop.
 
 ## Data provenance & reconciliation
 

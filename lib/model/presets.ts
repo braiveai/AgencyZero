@@ -1,20 +1,27 @@
 import { baseline, rates } from "./baseline";
 import { stages } from "./processes";
-import { deriveZeroFteByStage, type Conservatism, type ScenarioParams } from "./engine";
+import {
+  deriveZeroFteByStage,
+  fteTodayForStage,
+  totalTodayFte,
+  type Conservatism,
+  type ScenarioParams,
+} from "./engine";
 
 export const OWNER_COMP_DEFAULT = 400_000; // combined MD + CEO market-rate placeholder
 
-const loadedTodayAnnual = rates.loadedHourlyToday * rates.productiveHoursPerMonth * 12; // ~110k
+// Today's loaded cost is anchored to verified payroll ÷ derived headcount, so the
+// status-quo scenario reconciles to the real people-cost line regardless of roster size.
+const loadedTodayAnnual = baseline.peopleCost.value / totalTodayFte();
 const loadedZeroAnnual = rates.loadedHourlyZero * rates.productiveHoursPerMonth * 12; // ~144k
 
 const todayFteByStage = (): Record<string, number> =>
-  Object.fromEntries(stages.map((s) => [s.id, s.fteToday.value]));
+  Object.fromEntries(stages.map((s) => [s.id, fteTodayForStage(s)]));
 
 const midpointFteByStage = (): Record<string, number> => {
   const zero = deriveZeroFteByStage("base");
-  return Object.fromEntries(
-    stages.map((s) => [s.id, (s.fteToday.value + zero[s.id]) / 2]),
-  );
+  const today = todayFteByStage();
+  return Object.fromEntries(stages.map((s) => [s.id, (today[s.id] + zero[s.id]) / 2]));
 };
 
 export interface Preset {
@@ -24,10 +31,7 @@ export interface Preset {
   params: ScenarioParams;
 }
 
-export function makePresets(
-  conservatism: Conservatism = "base",
-  horizonYear = 3,
-): Preset[] {
+export function makePresets(conservatism: Conservatism = "base", horizonYear = 3): Preset[] {
   return [
     {
       key: "status-quo",
@@ -83,6 +87,5 @@ export function makePresets(
   ];
 }
 
-/** Default Model-screen starting point = the Agency Zero preset at base. */
 export const defaultParams = (): ScenarioParams =>
   makePresets("base", 3).find((p) => p.key === "agency-zero")!.params;
