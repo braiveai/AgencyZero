@@ -63,6 +63,7 @@ export default function ValueChainWorkshop() {
   const [ready, setReady] = useState(false);
   const [openStages, setOpenStages] = useState<Record<string, boolean>>({});
   const [pickerFor, setPickerFor] = useState<string | null>(null);
+  const [expandedProc, setExpandedProc] = useState<string | null>(null);
   const [newStaff, setNewStaff] = useState<{ label: string; group: StaffGroup }>({ label: "", group: "digital" });
   const [addProcFor, setAddProcFor] = useState<string | null>(null);
   const [newProcLabel, setNewProcLabel] = useState("");
@@ -210,74 +211,79 @@ export default function ValueChainWorkshop() {
                     const tFte = todayFteForProcess(p, ctx, weights);
                     const zFte = zeroFteForProcess(p, "base", ctx, weights);
                     const reviewed = state.reviewed.includes(p.id);
+                    const expanded = expandedProc === p.id;
+                    const human = p.automatability === "none" || p.automatability === "some";
                     return (
-                      <div key={p.id} className={clsx("border-b border-rule_soft px-5 py-3", !p.required && "opacity-50")}>
-                        <div className="flex items-start justify-between gap-3">
-                          <div className="flex items-start gap-2">
-                            <button onClick={() => toggleReviewed(p.id)} title="Mark reviewed" className={clsx("mt-0.5 flex h-4 w-4 items-center justify-center rounded border text-[10px]", reviewed ? "border-positive bg-positive text-paper" : "border-rule text-transparent")}>✓</button>
-                            <div>
-                              <div className="flex items-center gap-1.5">
-                                <span className="text-[14px] font-semibold text-ink-900">{p.label}</span>
-                                <span className="cursor-help text-ink-200" title={p.description}>ⓘ</span>
-                                {p.clientFacing && <span className="rounded bg-accent-wash px-1 text-[10px] font-semibold text-accent-dark">client</span>}
-                              </div>
-                            </div>
+                      <div key={p.id} className={clsx("border-b border-rule_soft", !p.required && "opacity-50")}>
+                        {/* one calm summary line — click to open */}
+                        <div className="flex cursor-pointer items-center justify-between gap-3 px-5 py-2.5 hover:bg-rule_soft/40" onClick={() => setExpandedProc(expanded ? null : p.id)}>
+                          <div className="flex min-w-0 items-center gap-2">
+                            <button onClick={(e) => { e.stopPropagation(); toggleReviewed(p.id); }} title="Mark reviewed" className={clsx("flex h-4 w-4 shrink-0 items-center justify-center rounded border text-[10px]", reviewed ? "border-positive bg-positive text-paper" : "border-rule text-transparent")}>✓</button>
+                            <span className="truncate text-[14px] font-semibold text-ink-900">{p.label}</span>
+                            <span className="cursor-help text-ink-200" title={p.description}>ⓘ</span>
+                            <span className={clsx("shrink-0 rounded px-1 py-0.5 text-[10px] font-bold uppercase tracking-wide", human ? "bg-accent-wash text-accent-dark" : "bg-ink-900/6 text-ink-400")}>{human ? "Human" : "AI"}</span>
+                            <span className="hidden shrink-0 text-[11px] text-ink-300 sm:inline">{p.staffIds.length} {p.staffIds.length === 1 ? "person" : "people"}</span>
                           </div>
                           <div className="flex shrink-0 items-center gap-3">
                             <span className="tnum text-[12px] text-ink-300">{fmtNum(tFte)} → <b className="text-accent-dark">{p.required ? fmtNum(zFte) : "0.0"}</b></span>
-                            {/* required toggle */}
-                            <button onClick={() => mutateProc(p.id, { required: !p.required })} title="Required in the rebuilt agency?" className={clsx("rounded-md px-2 py-0.5 text-[11px] font-bold", p.required ? "bg-positive/12 text-positive" : "bg-negative/12 text-negative")}>
+                            <button onClick={(e) => { e.stopPropagation(); mutateProc(p.id, { required: !p.required }); }} title="Required in the rebuilt agency?" className={clsx("rounded-md px-2 py-0.5 text-[11px] font-bold", p.required ? "bg-positive/12 text-positive" : "bg-negative/12 text-negative")}>
                               {p.required ? "Required" : "Not required"}
                             </button>
-                            <button onClick={() => removeProc(p.id)} className="text-ink-200 hover:text-negative" title="Delete process">×</button>
+                            <span className="text-ink-300">{expanded ? "▾" : "▸"}</span>
                           </div>
                         </div>
 
-                        {/* controls */}
-                        <div className="mt-2 flex flex-wrap items-center gap-x-5 gap-y-2 pl-6">
-                          <div className="flex items-center gap-1.5">
-                            <span className="text-[11px] text-ink-300">AI can take</span>
-                            <Seg opts={AUTO_OPTS} value={p.automatability} onChange={(v) => mutateProc(p.id, { automatability: v })} labelFor={(v) => AUTO_SHORT[v]} titleFor={(v) => AUTOMATABILITY_LABEL[v]} />
-                          </div>
-                          <div className="flex items-center gap-1.5">
-                            <span className="text-[11px] text-ink-300">Time</span>
-                            <Seg opts={INT_OPTS} value={p.intensity} onChange={(v) => mutateProc(p.id, { intensity: v })} labelFor={(v) => INT_SHORT[v]} titleFor={(v) => INTENSITY_LABEL[v]} />
-                          </div>
-                        </div>
-
-                        {/* who does this */}
-                        <div className="mt-2 flex flex-wrap items-center gap-1.5 pl-6">
-                          <span className="text-[11px] text-ink-300">Who does this?</span>
-                          {p.staffIds.length === 0 && <span className="text-[11px] italic text-ink-200">nobody assigned</span>}
-                          {p.staffIds.map((id) => {
-                            const r = state.staff.find((x) => x.id === id);
-                            if (!r) return null;
-                            return (
-                              <button key={id} onClick={() => toggleStaffOnProc(p, id)} className="flex items-center gap-1 rounded-full bg-ink-900 px-2 py-0.5 text-[11px] font-medium text-paper">
-                                {r.label}<span className="text-ink-200">×</span>
-                              </button>
-                            );
-                          })}
-                          <button onClick={() => setPickerFor(pickerFor === p.id ? null : p.id)} className="rounded-full border border-dashed border-ink-300 px-2 py-0.5 text-[11px] font-semibold text-ink-500 hover:bg-rule_soft">+ people</button>
-                        </div>
-
-                        {pickerFor === p.id && (
-                          <div className="mt-2 ml-6 rounded-lg border border-rule bg-paper p-3">
-                            {GROUP_LABEL_ORDER.filter((g) => rosterByGroup[g]?.length).map((g) => (
-                              <div key={g} className="mb-2 last:mb-0">
-                                <div className="eyebrow mb-1">{GROUP_LABEL[g]}</div>
-                                <div className="flex flex-wrap gap-1.5">
-                                  {rosterByGroup[g].map((r) => {
-                                    const on = p.staffIds.includes(r.id);
-                                    return (
-                                      <button key={r.id} onClick={() => toggleStaffOnProc(p, r.id)} className={clsx("rounded-full px-2 py-0.5 text-[11px] font-medium", on ? "bg-ink-900 text-paper" : "border border-rule bg-surface text-ink-700 hover:border-ink-300")}>
-                                        {r.label}
-                                      </button>
-                                    );
-                                  })}
-                                </div>
+                        {expanded && (
+                          <div className="space-y-3 px-5 pb-4 pl-11">
+                            <div className="flex flex-wrap items-center gap-x-5 gap-y-2">
+                              <div className="flex items-center gap-1.5">
+                                <span className="text-[11px] text-ink-300">AI can take</span>
+                                <Seg opts={AUTO_OPTS} value={p.automatability} onChange={(v) => mutateProc(p.id, { automatability: v })} labelFor={(v) => AUTO_SHORT[v]} titleFor={(v) => AUTOMATABILITY_LABEL[v]} />
                               </div>
-                            ))}
+                              <div className="flex items-center gap-1.5">
+                                <span className="text-[11px] text-ink-300">Time</span>
+                                <Seg opts={INT_OPTS} value={p.intensity} onChange={(v) => mutateProc(p.id, { intensity: v })} labelFor={(v) => INT_SHORT[v]} titleFor={(v) => INTENSITY_LABEL[v]} />
+                              </div>
+                            </div>
+
+                            <div className="flex flex-wrap items-center gap-1.5">
+                              <span className="text-[11px] text-ink-300">Who does this?</span>
+                              {p.staffIds.length === 0 && <span className="text-[11px] italic text-ink-200">nobody assigned</span>}
+                              {p.staffIds.map((id) => {
+                                const r = state.staff.find((x) => x.id === id);
+                                if (!r) return null;
+                                return (
+                                  <button key={id} onClick={() => toggleStaffOnProc(p, id)} className="flex items-center gap-1 rounded-full bg-ink-900 px-2 py-0.5 text-[11px] font-medium text-paper">
+                                    {r.label}<span className="text-ink-200">×</span>
+                                  </button>
+                                );
+                              })}
+                              <button onClick={() => setPickerFor(pickerFor === p.id ? null : p.id)} className="rounded-full border border-dashed border-ink-300 px-2 py-0.5 text-[11px] font-semibold text-ink-500 hover:bg-rule_soft">+ people</button>
+                            </div>
+
+                            {pickerFor === p.id && (
+                              <div className="rounded-lg border border-rule bg-paper p-3">
+                                {GROUP_LABEL_ORDER.filter((g) => rosterByGroup[g]?.length).map((g) => (
+                                  <div key={g} className="mb-2 last:mb-0">
+                                    <div className="eyebrow mb-1">{GROUP_LABEL[g]}</div>
+                                    <div className="flex flex-wrap gap-1.5">
+                                      {rosterByGroup[g].map((r) => {
+                                        const on = p.staffIds.includes(r.id);
+                                        return (
+                                          <button key={r.id} onClick={() => toggleStaffOnProc(p, r.id)} className={clsx("rounded-full px-2 py-0.5 text-[11px] font-medium", on ? "bg-ink-900 text-paper" : "border border-rule bg-surface text-ink-700 hover:border-ink-300")}>
+                                            {r.label}
+                                          </button>
+                                        );
+                                      })}
+                                    </div>
+                                  </div>
+                                ))}
+                              </div>
+                            )}
+
+                            <div>
+                              <button onClick={() => removeProc(p.id)} className="text-[11px] text-ink-300 hover:text-negative">Delete this process</button>
+                            </div>
                           </div>
                         )}
                       </div>
