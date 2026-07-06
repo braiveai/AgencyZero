@@ -6,8 +6,9 @@ import clsx from "clsx";
 
 const LINKS = [
   { href: "/today", label: "Today", n: "S1" },
+  { href: "/rebuild", label: "The Rebuild", n: "" },
+  { href: "/value-chain", label: "Workshop", n: "S2" },
   { href: "/model", label: "The Model", n: "S3" },
-  { href: "/value-chain", label: "Value Chain", n: "S2" },
   { href: "/horizons", label: "Horizons", n: "S4" },
   { href: "/scenarios", label: "Scenarios", n: "S5" },
 ];
