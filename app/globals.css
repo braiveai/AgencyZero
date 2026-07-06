@@ -54,3 +54,24 @@ input[type="range"]::-moz-range-thumb {
 .eyebrow {
   @apply text-[11px] font-semibold uppercase tracking-[0.14em] text-ink-300;
 }
+
+/* Deck: on screen one slide fills the viewport; in print each stacks to a page. */
+@media print {
+  @page {
+    size: landscape;
+    margin: 0;
+  }
+  .deck-chrome {
+    display: none !important;
+  }
+  .deck-slide {
+    page-break-after: always;
+    break-after: page;
+    height: 100vh;
+    position: relative !important;
+    inset: auto !important;
+    opacity: 1 !important;
+    visibility: visible !important;
+    transform: none !important;
+  }
+}

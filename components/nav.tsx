@@ -14,7 +14,7 @@ const LINKS = [
 
 export function Nav() {
   const path = usePathname();
-  if (path === "/login") return null;
+  if (path === "/login" || path.startsWith("/deck")) return null;
   return (
     <header className="sticky top-0 z-30 border-b border-rule bg-paper/85 backdrop-blur">
       <div className="mx-auto flex max-w-6xl items-center gap-6 px-5 py-3">
@@ -45,6 +45,12 @@ export function Nav() {
             );
           })}
         </nav>
+        <Link
+          href="/deck"
+          className="hidden shrink-0 rounded-lg border border-rule px-3 py-1.5 text-[13px] font-semibold text-ink-700 hover:border-ink-300 sm:block"
+        >
+          Deck ↗
+        </Link>
       </div>
     </header>
   );
