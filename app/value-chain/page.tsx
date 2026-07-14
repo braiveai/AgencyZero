@@ -28,6 +28,7 @@ import {
   type StaffRole,
 } from "@/lib/model/types";
 import { GROUP_LABEL } from "@/lib/model/staff";
+import { useAssumptions } from "@/lib/model/assumptions";
 import { fmtNum } from "@/lib/format";
 import { PageHead } from "@/components/ui";
 import {
@@ -76,7 +77,8 @@ export default function ValueChainWorkshop() {
   }, []);
   useEffect(() => { if (ready) saveWorkshop(state); }, [state, ready]);
 
-  const ctx: DataCtx = useMemo(() => ({ stages: state.stages, staff: state.staff }), [state]);
+  const a = useAssumptions();
+  const ctx: DataCtx = useMemo(() => ({ stages: state.stages, staff: state.staff, assumptions: a }), [state, a]);
   const weights = useMemo(() => assignmentCounts(ctx), [ctx]);
   const totals = useMemo(() => ({
     today: totalTodayFte(ctx),
@@ -119,7 +121,7 @@ export default function ValueChainWorkshop() {
     const params: ScenarioParams = {
       revenueGrowth: 0, feeCompression: 0.08,
       fteByStage: deriveZeroFteByStage("base", ctx),
-      loadedCostPerHead: Math.round(rates.loadedHourlyZero * rates.productiveHoursPerMonth * 12),
+      loadedCostPerHead: Math.round(a.rates.loadedHourlyZero * a.rates.productiveHoursPerMonth * 12),
       aiSpendPerYear: 160_000, adoptionRate: 1, ownerCompInOpex: false, ownerComp: 400_000,
       horizonYear: 3, conservatism: "base", ctx,
     };

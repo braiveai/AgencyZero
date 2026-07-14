@@ -7,6 +7,7 @@ import { makePresets } from "@/lib/model/presets";
 import { fmtMoneyShort, fmtPct } from "@/lib/format";
 import { PageHead } from "@/components/ui";
 import { deleteScenario, loadScenarios, type SavedScenario } from "@/lib/scenario-store";
+import { useAssumptions } from "@/lib/model/assumptions";
 
 interface Card {
   key: string;
@@ -24,14 +25,15 @@ function metrics(p: ScenarioParams) {
 export default function Scenarios() {
   const [saved, setSaved] = useState<SavedScenario[]>([]);
   useEffect(() => setSaved(loadScenarios()), []);
+  const a = useAssumptions();
 
-  const presets = makePresets("base", 3);
+  const presets = makePresets("base", 3, a);
   const cards: Card[] = useMemo(
     () => [
       ...presets.map((p) => ({ key: p.key, name: p.name, blurb: p.blurb, params: p.params })),
       ...saved.map((s) => ({ key: s.id, name: s.name, blurb: "Saved on this device.", params: s.params, removable: true })),
     ],
-    [saved],
+    [saved, a],
   );
 
   const best = Math.max(...cards.map((c) => metrics(c.params).profit));

@@ -18,6 +18,7 @@ import {
   type DataCtx,
 } from "./engine";
 import { makePresets, defaultParams } from "./presets";
+import { defaultAssumptions } from "./assumptions";
 
 const clone = (): DataCtx => ({ stages: JSON.parse(JSON.stringify(stages)), staff: JSON.parse(JSON.stringify(staff)) });
 const findProc = (ctx: DataCtx, id: string) =>
@@ -151,6 +152,29 @@ describe("ACCEPTANCE: Conservative-Zero beats Base-Status-Quo", () => {
     const zcLow = runModelBanded(makePresets("conservative", 3).find((p) => p.key === "agency-zero")!.params).low;
     const sqb = runModel(makePresets("base", 3).find((p) => p.key === "status-quo")!.params);
     expect(zcLow.profit).toBeGreaterThan(sqb.profit);
+  });
+});
+
+describe("assumptions flow through", () => {
+  it("raising a residual fraction (less automation) grows the Zero org", () => {
+    const a = defaultAssumptions();
+    a.residual.most = 0.5; // 'most' now leaves 50% human instead of 25%
+    const ctx = { stages: JSON.parse(JSON.stringify(stages)), staff: JSON.parse(JSON.stringify(staff)), assumptions: a };
+    expect(totalZeroFte("base", ctx)).toBeGreaterThan(totalZeroFte("base"));
+  });
+  it("raising other-opex lowers Zero profit", () => {
+    const a = defaultAssumptions();
+    a.financials.otherOpex += 500_000;
+    const edited = runModel(makePresets("base", 3, a).find((p) => p.key === "agency-zero")!.params);
+    const base = runModel(makePresets("base", 3).find((p) => p.key === "agency-zero")!.params);
+    expect(edited.profit).toBeCloseTo(base.profit - 500_000, -2);
+  });
+  it("a higher profit floor cuts headroom by the same amount", () => {
+    const a = defaultAssumptions();
+    a.profitFloor = 1_500_000;
+    const edited = runModel(makePresets("base", 3, a).find((p) => p.key === "agency-zero")!.params);
+    const base = runModel(makePresets("base", 3).find((p) => p.key === "agency-zero")!.params);
+    expect(base.floorHeadroom - edited.floorHeadroom).toBeCloseTo(500_000, -2);
   });
 });
 

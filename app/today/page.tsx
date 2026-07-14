@@ -1,10 +1,28 @@
+"use client";
+
 import { baseline } from "@/lib/model/baseline";
+import { useAssumptions } from "@/lib/model/assumptions";
 import { fmtMoney, fmtMoneyShort, fmtPct } from "@/lib/format";
 import { PageHead, StatCard } from "@/components/ui";
 import { MonthlyProfitChart, RevenueMixDonut, PayrollGauge } from "@/components/charts";
 
 export default function Today() {
-  const b = baseline;
+  const f = useAssumptions().financials;
+  // Financials reflect whatever was set on the Confirm tab; the confidence tags,
+  // monthly series and concentration stay from the source baseline.
+  const b = {
+    gp: { value: f.gp, confidence: baseline.gp.confidence },
+    tradNet: { value: f.tradNet, confidence: baseline.tradNet.confidence },
+    digitalNet: { value: f.digitalNet, confidence: baseline.digitalNet.confidence },
+    peopleCost: { value: f.peopleCost, confidence: baseline.peopleCost.confidence },
+    otherOpex: { value: f.otherOpex, confidence: baseline.otherOpex.confidence },
+    tooling: { value: f.tooling, confidence: baseline.tooling.confidence },
+    fte: { value: f.fte, confidence: baseline.fte.confidence },
+    // reconciled net profit = GP − people − tooling − other opex, so edits flow through
+    netProfit: { value: f.gp - f.peopleCost - f.tooling - f.otherOpex, confidence: "verified" as const },
+    monthlyProfit: baseline.monthlyProfit,
+    concentration: baseline.concentration,
+  };
   const revPerHead = b.gp.value / b.fte.value;
   const profitPerHead = b.netProfit.value / b.fte.value;
   const payrollRatio = b.peopleCost.value / b.gp.value;

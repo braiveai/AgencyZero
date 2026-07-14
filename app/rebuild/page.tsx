@@ -3,7 +3,9 @@
 import { useMemo, useState } from "react";
 import clsx from "clsx";
 import { stages } from "@/lib/model/processes";
-import { fteZeroForStage, totalZeroFte } from "@/lib/model/engine";
+import { staff } from "@/lib/model/staff";
+import { fteZeroForStage, totalZeroFte, type DataCtx } from "@/lib/model/engine";
+import { useAssumptions } from "@/lib/model/assumptions";
 import type { Process, Stage } from "@/lib/model/types";
 import { fmtNum } from "@/lib/format";
 import { PageHead } from "@/components/ui";
@@ -24,14 +26,16 @@ const humanProcs = (s: Stage) => s.processes.filter((p) => p.required && isHuman
 const aiProcs = (s: Stage) => s.processes.filter((p) => p.required && !isHuman(p));
 
 export default function Rebuild() {
+  const a = useAssumptions();
+  const ctx = useMemo<DataCtx>(() => ({ stages, staff, assumptions: a }), [a]);
   const [stageId, setStageId] = useState("prove");
   const stage = stages.find((s) => s.id === stageId) as Stage;
   const frame = FRAME[stageId];
 
   const totals = useMemo(() => {
     const human = stages.reduce((n, s) => n + humanProcs(s).length, 0);
-    return { human, fte: totalZeroFte("base") };
-  }, []);
+    return { human, fte: totalZeroFte("base", ctx) };
+  }, [ctx]);
 
   return (
     <div>
@@ -53,7 +57,7 @@ export default function Rebuild() {
         <div className="grid grid-cols-2 gap-2 sm:grid-cols-4 lg:grid-cols-8">
           {stages.map((s) => {
             const humans = humanProcs(s);
-            const zero = fteZeroForStage(s, "base");
+            const zero = fteZeroForStage(s, "base", ctx);
             return (
               <button
                 key={s.id}

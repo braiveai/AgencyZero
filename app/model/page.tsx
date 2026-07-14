@@ -1,17 +1,20 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import clsx from "clsx";
 import { stages } from "@/lib/model/processes";
+import { staff } from "@/lib/model/staff";
 import {
   deriveZeroFteByStage,
   runModel,
   runModelBanded,
   totalTodayFte,
   type Conservatism,
+  type DataCtx,
   type ScenarioParams,
 } from "@/lib/model/engine";
 import { defaultParams, makePresets } from "@/lib/model/presets";
+import { useAssumptions } from "@/lib/model/assumptions";
 import { fmtMoney, fmtMoneyShort, fmtPct } from "@/lib/format";
 import { PageHead, Toggle } from "@/components/ui";
 import { saveScenario } from "@/lib/scenario-store";
@@ -56,15 +59,21 @@ function Slider({
 }
 
 export default function ModelPage() {
+  const a = useAssumptions();
+  const ctx = useMemo<DataCtx>(() => ({ stages, staff, assumptions: a }), [a]);
   const [params, setParams] = useState<ScenarioParams>(() => defaultParams());
   const [showBands, setShowBands] = useState(true);
   const [saveName, setSaveName] = useState("");
   const [saved, setSaved] = useState(false);
 
+  // Reseed from the (possibly edited) assumptions once they load. `a` only
+  // changes on mount, so this doesn't clobber live slider edits.
+  useEffect(() => setParams(defaultParams(a)), [a]);
+
   const update = (patch: Partial<ScenarioParams>) => setParams((p) => ({ ...p, ...patch }));
 
   const setConservatism = (c: Conservatism) =>
-    setParams((p) => ({ ...p, conservatism: c, fteByStage: deriveZeroFteByStage(c) }));
+    setParams((p) => ({ ...p, conservatism: c, fteByStage: deriveZeroFteByStage(c, ctx) }));
 
   const banded = useMemo(() => runModelBanded(params), [params]);
   const out = banded.base;
@@ -72,14 +81,14 @@ export default function ModelPage() {
   const statusQuo = useMemo(
     () =>
       runModel(
-        makePresets(params.conservatism, params.horizonYear).find((p) => p.key === "status-quo")!.params,
+        makePresets(params.conservatism, params.horizonYear, a).find((p) => p.key === "status-quo")!.params,
       ),
-    [params.conservatism, params.horizonYear],
+    [params.conservatism, params.horizonYear, a],
   );
 
   const deltaVsSq = out.profit - statusQuo.profit;
   const totalFte = out.totalFte;
-  const aboveFloor = out.profit >= 1_000_000;
+  const aboveFloor = out.floorHeadroom >= 0;
 
   const rangeText = (lo: number, hi: number) =>
     showBands ? `${fmtMoneyShort(lo)} – ${fmtMoneyShort(hi)}` : fmtMoneyShort(out.profit);
@@ -161,7 +170,7 @@ export default function ModelPage() {
                 Reset to derived
               </button>
             </div>
-            <p className="mb-3 text-[11px] leading-snug text-ink-400">How many people each part of the agency keeps in the rebuild. Seeded from the Workshop; nudge any stage to test "what if we kept one more here?". Total today <b className="text-ink-700">{totalTodayFte().toFixed(1)}</b> → target <b className="text-accent-dark">{Object.values(params.fteByStage).reduce((a, b) => a + b, 0).toFixed(1)}</b>.</p>
+            <p className="mb-3 text-[11px] leading-snug text-ink-400">How many people each part of the agency keeps in the rebuild. Seeded from the Workshop; nudge any stage to test "what if we kept one more here?". Total today <b className="text-ink-700">{totalTodayFte(ctx).toFixed(1)}</b> → target <b className="text-accent-dark">{Object.values(params.fteByStage).reduce((a, b) => a + b, 0).toFixed(1)}</b>.</p>
             <div className="grid gap-2 sm:grid-cols-2">
               {stages.map((s) => {
                 const v = params.fteByStage[s.id] ?? 0;
@@ -204,7 +213,7 @@ export default function ModelPage() {
             </div>
             <div className="grid grid-cols-2 divide-x divide-rule">
               {[
-                { label: "Total FTE", value: totalFte.toFixed(1), sub: `from ${totalTodayFte().toFixed(0)} today` },
+                { label: "Total FTE", value: totalFte.toFixed(1), sub: `from ${totalTodayFte(ctx).toFixed(0)} today` },
                 { label: "Profit / head", value: fmtMoneyShort(out.profitPerHead), sub: "$75k today" },
                 { label: "GP / head", value: fmtMoneyShort(out.gpPerHead), sub: "$235k today" },
                 { label: "Payroll ratio", value: fmtPct(out.payrollRatio), sub: "47% today" },

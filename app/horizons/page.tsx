@@ -2,26 +2,30 @@
 
 import { useMemo, useState } from "react";
 import clsx from "clsx";
-import { ramp, runModel, totalRealisedFte, totalTodayFte, type ScenarioParams } from "@/lib/model/engine";
+import { ramp, runModel, totalRealisedFte, totalTodayFte, type DataCtx, type ScenarioParams } from "@/lib/model/engine";
 import { makePresets } from "@/lib/model/presets";
-import { rates } from "@/lib/model/baseline";
+import { useAssumptions } from "@/lib/model/assumptions";
+import { stages } from "@/lib/model/processes";
+import { staff } from "@/lib/model/staff";
 import { fmtMoneyShort } from "@/lib/format";
 import { PageHead, Toggle, StatCard } from "@/components/ui";
 import { ProfitLines } from "@/components/charts";
 
 const YEARS = [0, 1, 2, 3, 4];
-const PAYOUT_WEEKS = 8;
 
 export default function Horizons() {
   const [path, setPath] = useState<"attrition" | "restructure">("restructure");
+  const a = useAssumptions();
+  const ctx = useMemo<DataCtx>(() => ({ stages, staff, assumptions: a }), [a]);
+  const PAYOUT_WEEKS = a.redundancyWeeks;
 
-  const zeroPreset = makePresets("base", 0).find((p) => p.key === "agency-zero")!.params;
-  const sqPreset = makePresets("base", 0).find((p) => p.key === "status-quo")!.params;
+  const zeroPreset = makePresets("base", 0, a).find((p) => p.key === "agency-zero")!.params;
+  const sqPreset = makePresets("base", 0, a).find((p) => p.key === "status-quo")!.params;
 
   const rampYears = path === "restructure" ? 1.5 : 3;
-  const departingFte = totalTodayFte() - Object.values(zeroPreset.fteByStage).reduce((a, b) => a + b, 0);
-  const loadedToday = rates.loadedHourlyToday * rates.productiveHoursPerMonth * 12;
-  const loadedZero = rates.loadedHourlyZero * rates.productiveHoursPerMonth * 12;
+  const departingFte = totalTodayFte(ctx) - Object.values(zeroPreset.fteByStage).reduce((x, y) => x + y, 0);
+  const loadedToday = a.financials.peopleCost / totalTodayFte(ctx);
+  const loadedZero = a.rates.loadedHourlyZero * a.rates.productiveHoursPerMonth * 12;
   const weeklyCost = loadedToday / 52;
   const redundancyCost = path === "restructure" ? departingFte * weeklyCost * PAYOUT_WEEKS : 0;
 
@@ -57,7 +61,7 @@ export default function Horizons() {
         breakEven,
       };
     });
-  }, [path, rampYears, redundancyCost]);
+  }, [path, rampYears, redundancyCost, a]);
 
   const breakEven = proj.find((p) => p.breakEven)?.breakEven ?? null;
   const endDelta = proj[proj.length - 1].cumDelta;
@@ -81,7 +85,7 @@ export default function Horizons() {
         <StatCard label="Redundancy cost" value={fmtMoneyShort(redundancyCost)} sub={path === "restructure" ? `~${departingFte.toFixed(0)} roles × ${PAYOUT_WEEKS}wk` : "avoided via attrition"} tone={redundancyCost > 0 ? "negative" : "positive"} />
         <StatCard label="Transition break-even" value={breakEven ? `Year ${breakEven}` : "—"} sub="cumulative profit clears status quo" tone="positive" />
         <StatCard label="Cumulative gain vs status quo" value={fmtMoneyShort(endDelta)} sub="over 4 years" tone="accent" />
-        <StatCard label="Headcount by year 3" value={proj[3].headcount.toFixed(1)} sub={`from ${totalTodayFte().toFixed(0)} today`} />
+        <StatCard label="Headcount by year 3" value={proj[3].headcount.toFixed(1)} sub={`from ${totalTodayFte(ctx).toFixed(0)} today`} />
       </div>
 
       <div className="mt-6 grid gap-4 lg:grid-cols-2">

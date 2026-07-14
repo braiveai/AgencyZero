@@ -1,26 +1,25 @@
-import { baseline, rates } from "./baseline";
 import { stages } from "./processes";
+import { staff } from "./staff";
 import {
   deriveZeroFteByStage,
   fteTodayForStage,
   totalTodayFte,
   type Conservatism,
+  type DataCtx,
   type ScenarioParams,
 } from "./engine";
+import { DEFAULT_ASSUMPTIONS, type Assumptions } from "./assumptions";
 
-export const OWNER_COMP_DEFAULT = 400_000; // combined MD + CEO market-rate placeholder
+export const OWNER_COMP_DEFAULT = 400_000;
 
-// Today's loaded cost is anchored to verified payroll ÷ derived headcount, so the
-// status-quo scenario reconciles to the real people-cost line regardless of roster size.
-const loadedTodayAnnual = baseline.peopleCost.value / totalTodayFte();
-const loadedZeroAnnual = rates.loadedHourlyZero * rates.productiveHoursPerMonth * 12; // ~144k
+const ctxWith = (a: Assumptions): DataCtx => ({ stages, staff, assumptions: a });
 
-const todayFteByStage = (): Record<string, number> =>
-  Object.fromEntries(stages.map((s) => [s.id, fteTodayForStage(s)]));
+const todayFteByStage = (ctx: DataCtx): Record<string, number> =>
+  Object.fromEntries(stages.map((s) => [s.id, fteTodayForStage(s, ctx)]));
 
-const midpointFteByStage = (): Record<string, number> => {
-  const zero = deriveZeroFteByStage("base");
-  const today = todayFteByStage();
+const midpointFteByStage = (ctx: DataCtx): Record<string, number> => {
+  const zero = deriveZeroFteByStage("base", ctx);
+  const today = todayFteByStage(ctx);
   return Object.fromEntries(stages.map((s) => [s.id, (today[s.id] + zero[s.id]) / 2]));
 };
 
@@ -31,7 +30,16 @@ export interface Preset {
   params: ScenarioParams;
 }
 
-export function makePresets(conservatism: Conservatism = "base", horizonYear = 3): Preset[] {
+export function makePresets(
+  conservatism: Conservatism = "base",
+  horizonYear = 3,
+  a: Assumptions = DEFAULT_ASSUMPTIONS,
+): Preset[] {
+  const ctx = ctxWith(a);
+  // Today's loaded cost is anchored to verified payroll ÷ derived headcount.
+  const loadedTodayAnnual = a.financials.peopleCost / totalTodayFte(ctx);
+  const loadedZeroAnnual = a.rates.loadedHourlyZero * a.rates.productiveHoursPerMonth * 12;
+
   return [
     {
       key: "status-quo",
@@ -39,15 +47,16 @@ export function makePresets(conservatism: Conservatism = "base", horizonYear = 3
       blurb: "Drift + digital fee compression. No restructure. Profit erodes toward the floor.",
       params: {
         revenueGrowth: 0,
-        feeCompression: 0.08,
-        fteByStage: todayFteByStage(),
+        feeCompression: a.feeCompression,
+        fteByStage: todayFteByStage(ctx),
         loadedCostPerHead: Math.round(loadedTodayAnnual),
-        aiSpendPerYear: baseline.tooling.value,
+        aiSpendPerYear: a.financials.tooling,
         adoptionRate: 0,
         ownerCompInOpex: false,
-        ownerComp: OWNER_COMP_DEFAULT,
+        ownerComp: a.ownerComp,
         horizonYear,
         conservatism,
+        ctx,
       },
     },
     {
@@ -56,15 +65,16 @@ export function makePresets(conservatism: Conservatism = "base", horizonYear = 3
       blurb: "The full zero-based rebuild. Fewer, more senior, systems-literate. Flat revenue.",
       params: {
         revenueGrowth: 0,
-        feeCompression: 0.08,
-        fteByStage: deriveZeroFteByStage(conservatism),
+        feeCompression: a.feeCompression,
+        fteByStage: deriveZeroFteByStage(conservatism, ctx),
         loadedCostPerHead: Math.round(loadedZeroAnnual),
-        aiSpendPerYear: 160_000,
+        aiSpendPerYear: a.aiSpendZero,
         adoptionRate: 1,
         ownerCompInOpex: false,
-        ownerComp: OWNER_COMP_DEFAULT,
+        ownerComp: a.ownerComp,
         horizonYear,
         conservatism,
+        ctx,
       },
     },
     {
@@ -73,19 +83,20 @@ export function makePresets(conservatism: Conservatism = "base", horizonYear = 3
       blurb: "The likely reality — halfway restructure, partial adoption. Editable.",
       params: {
         revenueGrowth: 0.05,
-        feeCompression: 0.08,
-        fteByStage: midpointFteByStage(),
+        feeCompression: a.feeCompression,
+        fteByStage: midpointFteByStage(ctx),
         loadedCostPerHead: Math.round((loadedTodayAnnual + loadedZeroAnnual) / 2),
-        aiSpendPerYear: 155_000,
+        aiSpendPerYear: Math.round((a.financials.tooling + a.aiSpendZero) / 2),
         adoptionRate: 0.5,
         ownerCompInOpex: false,
-        ownerComp: OWNER_COMP_DEFAULT,
+        ownerComp: a.ownerComp,
         horizonYear,
         conservatism,
+        ctx,
       },
     },
   ];
 }
 
-export const defaultParams = (): ScenarioParams =>
-  makePresets("base", 3).find((p) => p.key === "agency-zero")!.params;
+export const defaultParams = (a: Assumptions = DEFAULT_ASSUMPTIONS): ScenarioParams =>
+  makePresets("base", 3, a).find((p) => p.key === "agency-zero")!.params;

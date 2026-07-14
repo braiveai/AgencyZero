@@ -3,31 +3,35 @@
 import { useMemo } from "react";
 import clsx from "clsx";
 import { stages } from "@/lib/model/processes";
+import { staff } from "@/lib/model/staff";
 import { tools } from "@/lib/model/tools";
-import { runModel, todayFteForProcess, totalTodayFte, totalZeroFte, zeroFteForProcess } from "@/lib/model/engine";
+import { runModel, todayFteForProcess, totalTodayFte, totalZeroFte, zeroFteForProcess, type DataCtx } from "@/lib/model/engine";
 import { makePresets } from "@/lib/model/presets";
+import { useAssumptions } from "@/lib/model/assumptions";
 import { fmtMoneyShort, fmtNum } from "@/lib/format";
 import { PageHead } from "@/components/ui";
 
 const toolMap = Object.fromEntries(tools.map((t) => [t.id, t]));
 
 export default function StartHere() {
+  const a = useAssumptions();
+  const ctx = useMemo<DataCtx>(() => ({ stages, staff, assumptions: a }), [a]);
   const opps = useMemo(() => {
     const rows = stages.flatMap((s) =>
       s.processes
         .filter((p) => p.required)
         .map((p) => {
-          const today = todayFteForProcess(p);
-          const zero = zeroFteForProcess(p, "base");
+          const today = todayFteForProcess(p, ctx);
+          const zero = zeroFteForProcess(p, "base", ctx);
           return { id: p.id, label: p.label, stage: s.label, today, zero, freed: today - zero, tool: p.tools[0] ? toolMap[p.tools[0]] : null };
         }),
     );
-    return rows.sort((a, b) => b.freed - a.freed);
-  }, []);
+    return rows.sort((x, y) => y.freed - x.freed);
+  }, [ctx]);
 
   const top = opps.slice(0, 10);
   const maxFreed = top[0]?.freed || 1;
-  const totalFreed = totalTodayFte() - totalZeroFte("base");
+  const totalFreed = totalTodayFte(ctx) - totalZeroFte("base", ctx);
 
   // no-regrets tools = the tools behind the biggest owned opportunities
   const startTools = useMemo(() => {
@@ -40,7 +44,7 @@ export default function StartHere() {
     return list;
   }, [opps]);
 
-  const middle = runModel(makePresets("base", 3).find((p) => p.key === "middle-path")!.params);
+  const middle = runModel(makePresets("base", 3, a).find((p) => p.key === "middle-path")!.params);
 
   return (
     <div>
@@ -55,7 +59,7 @@ export default function StartHere() {
           <div className="text-[13px] uppercase tracking-[0.14em] text-paper/60">Automatable human overhead</div>
           <div className="tnum text-3xl font-extrabold">~{fmtNum(totalFreed)} FTE</div>
         </div>
-        <p className="max-w-md text-[13px] leading-snug text-paper/70">of today's {totalTodayFte().toFixed(0)} people is work AI can take — concentrated in a handful of places. You don't boil the ocean; you drain the deepest pools first.</p>
+        <p className="max-w-md text-[13px] leading-snug text-paper/70">of today's {totalTodayFte(ctx).toFixed(0)} people is work AI can take — concentrated in a handful of places. You don't boil the ocean; you drain the deepest pools first.</p>
       </div>
 
       {/* opportunity ranking */}
