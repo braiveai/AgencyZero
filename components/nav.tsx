@@ -14,6 +14,7 @@ const LINKS = [
   { href: "/horizons", label: "Horizons" },
   { href: "/scenarios", label: "Scenarios" },
   { href: "/start", label: "Start Here" },
+  { href: "/org", label: "Org Chart", deep: true },
   { href: "/value-chain", label: "Workshop", deep: true },
 ];
 
@@ -32,11 +33,12 @@ export function Nav() {
           </span>
         </Link>
         <nav className="flex flex-1 items-center gap-1 overflow-x-auto">
-          {LINKS.map((l) => {
+          {LINKS.map((l, idx) => {
             const active = path === l.href || (path === "/" && l.href === "/today");
+            const firstDeep = LINKS.findIndex((x) => x.deep) === idx;
             return (
               <span key={l.href} className="flex items-center gap-1">
-                {l.deep && <span className="mx-1 h-4 w-px shrink-0 bg-rule" aria-hidden />}
+                {firstDeep && <span className="mx-1 h-4 w-px shrink-0 bg-rule" aria-hidden />}
                 <Link
                   href={l.href}
                   title={l.deep ? "The deep-dive — build the model with them (or a follow-up session)" : undefined}

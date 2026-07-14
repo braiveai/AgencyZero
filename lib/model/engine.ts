@@ -129,6 +129,32 @@ export function totalTodayFte(ctx?: DataCtx): number {
   return ctxOf(ctx).stages.reduce((s, st) => s + fteTodayForStage(st, ctx, c), 0);
 }
 
+/** How much of one role's work AI absorbs — for the org chart.
+ *  today = the person's FTE spread across their processes; residual = what survives
+ *  (0 for cut/not-required work). aidFrac = share the machine takes. Moves with the
+ *  assumptions + conservatism, so the chart is live. */
+export function roleAbsorption(
+  staffId: string,
+  con: Conservatism = "base",
+  ctx?: DataCtx,
+): { today: number; residual: number; aidFrac: number } {
+  const { stages, assumptions } = ctxOf(ctx);
+  const roster = rosterMap(ctx);
+  const weights = assignmentCounts(ctx);
+  const role = roster[staffId];
+  if (!role) return { today: 0, residual: 0, aidFrac: 0 };
+  if (!weights[staffId]) return { today: role.fte, residual: role.fte, aidFrac: 0 };
+  let today = 0;
+  let residual = 0;
+  for (const st of stages) for (const p of st.processes) {
+    if (!p.staffIds.includes(staffId)) continue;
+    const contrib = (role.fte * intensityWeight(p.intensity, assumptions)) / weights[staffId];
+    today += contrib;
+    residual += p.required ? contrib * residualFrac(p, con, ctx) : 0;
+  }
+  return { today, residual, aidFrac: today > 0 ? 1 - residual / today : 0 };
+}
+
 /** Roster FTE not assigned to any process — the "where's the time going" gap. */
 export function unallocatedFte(ctx?: DataCtx): number {
   const counts = assignmentCounts(ctx);

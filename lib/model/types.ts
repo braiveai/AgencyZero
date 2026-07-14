@@ -68,6 +68,12 @@ export interface StaffRole {
   /** FTE — 1 = full time, 0.5 = part time */
   fte: number;
   group: StaffGroup;
+  /** real title for the org chart (falls back to label) */
+  title?: string;
+  /** real person's name — only shown when "Show names" is toggled on the org chart */
+  name?: string;
+  /** id of the manager this role reports to (for the org-chart tree) */
+  pod?: string;
 }
 
 export const GROUP_LABEL_ORDER: StaffGroup[] = [
