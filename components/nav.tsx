@@ -11,6 +11,7 @@ const LINKS = [
   { href: "/model", label: "The Model", n: "S3" },
   { href: "/horizons", label: "Horizons", n: "S4" },
   { href: "/scenarios", label: "Scenarios", n: "S5" },
+  { href: "/start", label: "Start Here", n: "" },
 ];
 
 export function Nav() {

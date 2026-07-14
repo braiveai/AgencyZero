@@ -30,7 +30,7 @@ export default function Today() {
         <StatCard label="GP per head" value={fmtMoneyShort(revPerHead)} confidence="estimated" />
         <StatCard label="Profit per head" value={fmtMoneyShort(profitPerHead)} confidence="estimated" />
         <StatCard label="Total operating expense" value={fmtMoneyShort(b.otherOpex.value + b.peopleCost.value + b.tooling.value)} sub="people + tooling + other" confidence="verified" />
-        <StatCard label="Software & subscriptions" value={fmtMoneyShort(b.tooling.value)} sub="redirected + expanded at Zero" confidence={b.tooling.confidence} />
+        <StatCard label="Software & subscriptions" value={fmtMoneyShort(b.tooling.value)} sub="total SaaS/tech (Xero) — not AI-only" confidence={b.tooling.confidence} />
       </div>
 
       {/* charts */}

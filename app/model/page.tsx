@@ -136,7 +136,7 @@ export default function ModelPage() {
             <p className="mb-4 text-[11px] leading-snug text-ink-400">The two big cost levers: what people cost, and what the tools cost.</p>
             <div className="grid gap-5 sm:grid-cols-2">
               <Slider label="Avg loaded cost / head" value={params.loadedCostPerHead} min={100_000} max={180_000} step={1_000} onChange={(v) => update({ loadedCostPerHead: v })} fmt={(v) => fmtMoneyShort(v)} hint="Fully-loaded annual cost of an average person (salary + super + on-costs). The Zero org is fewer, more senior people — so higher than today's ~$117k/head." />
-              <Slider label="AI / tooling spend p.a." value={params.aiSpendPerYear} min={100_000} max={250_000} step={5_000} onChange={(v) => update({ aiSpendPerYear: v })} fmt={(v) => fmtMoneyShort(v)} hint="Annual spend on AI tools and platforms. Up from today's ~$153k — redirected from headcount and expanded." />
+              <Slider label="AI / tooling spend p.a." value={params.aiSpendPerYear} min={100_000} max={250_000} step={5_000} onChange={(v) => update({ aiSpendPerYear: v })} fmt={(v) => fmtMoneyShort(v)} hint="A forward estimate of the rebuilt agency's AI-tooling budget. NOTE: today's Xero 'software & subscriptions' line (~$153k) is all SaaS/tech, not AI — so this is a planning number to confirm, not that figure." />
             </div>
 
             <div className="mt-5 flex items-center justify-between rounded-lg bg-rule_soft px-3 py-2.5">
