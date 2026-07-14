@@ -41,6 +41,7 @@ function Slider({
         <label className="text-[13px] font-medium text-ink-700">{label}</label>
         <span className="tnum text-[13px] font-bold text-ink-900">{fmt(value)}</span>
       </div>
+      {hint && <div className="mb-1.5 mt-0.5 text-[11px] leading-snug text-ink-400">{hint}</div>}
       <input
         type="range"
         min={min}
@@ -48,9 +49,8 @@ function Slider({
         step={step}
         value={value}
         onChange={(e) => onChange(parseFloat(e.target.value))}
-        className="mt-2 w-full"
+        className="mt-1 w-full"
       />
-      {hint && <div className="mt-1 text-[11px] text-ink-300">{hint}</div>}
     </div>
   );
 }
@@ -97,15 +97,19 @@ export default function ModelPage() {
       <PageHead
         eyebrow="S3 · The model"
         title="Scenario builder"
-        lead="Move the assumptions; watch the P&L, org shape and floor recalculate. The headcount is derived bottom-up from residual hours — challenge any line item on the Value Chain screen and it flows through here."
+        lead="Move the assumptions on the left; the P&L, org size and profit floor on the right recalculate instantly. Every input is plain-English below — nothing here is a black box."
       />
+
+      <div className="mb-5 rounded-xl border border-rule bg-rule_soft/50 px-4 py-3 text-[12px] leading-relaxed text-ink-500">
+        <b className="text-ink-700">How to read this:</b> the sliders are the assumptions you can argue about; the panel on the right is what they produce. Green means profit is above the $1m floor, red means below. Start with the <b>Conservatism</b> dial top-right — if the story holds on <b>Conservative</b>, it holds.
+      </div>
 
       <div className="grid gap-5 lg:grid-cols-[1fr_360px]">
         {/* ---- controls ---- */}
         <div className="space-y-5">
           <div className="card p-5">
-            <div className="mb-4 flex items-center justify-between">
-              <div className="eyebrow">Market</div>
+            <div className="mb-1 flex items-center justify-between">
+              <div className="eyebrow">Market — the world we're in</div>
               <Toggle
                 value={params.conservatism}
                 onChange={(v) => setConservatism(v as Conservatism)}
@@ -116,25 +120,29 @@ export default function ModelPage() {
                 ]}
               />
             </div>
+            <p className="mb-4 text-[11px] leading-snug text-ink-400">
+              The <b>Conservatism</b> dial (top-right) sets how cautious every assumption is in one move: <b>Conservative</b> assumes AI takes less and the org stays bigger. The whole case has to survive it.
+            </p>
             <div className="grid gap-5 sm:grid-cols-2">
-              <Slider label="Revenue growth p.a." value={params.revenueGrowth} min={-0.1} max={0.4} step={0.01} onChange={(v) => update({ revenueGrowth: v })} fmt={(v) => fmtPct(v)} />
-              <Slider label="Digital fee compression p.a." value={params.feeCompression} min={0} max={0.3} step={0.01} onChange={(v) => update({ feeCompression: v })} fmt={(v) => fmtPct(v)} hint="The threat slider — our steadiest line is the first AI compresses." />
-              <Slider label="Adoption rate" value={params.adoptionRate} min={0} max={1} step={0.05} onChange={(v) => update({ adoptionRate: v })} fmt={(v) => fmtPct(v)} hint="Scales realised absorption. Tools we own but don't use cost us here." />
-              <Slider label="Horizon" value={params.horizonYear} min={0} max={5} step={1} onChange={(v) => update({ horizonYear: v })} fmt={(v) => (v === 0 ? "Now" : `Year ${v}`)} />
+              <Slider label="Revenue growth p.a." value={params.revenueGrowth} min={-0.1} max={0.4} step={0.01} onChange={(v) => update({ revenueGrowth: v })} fmt={(v) => fmtPct(v)} hint="How fast gross profit grows each year. 0% = deliberately flat, so the case never leans on winning more work." />
+              <Slider label="Digital fee compression p.a." value={params.feeCompression} min={0} max={0.3} step={0.01} onChange={(v) => update({ feeCompression: v })} fmt={(v) => fmtPct(v)} hint="How fast digital management fees shrink as AI commoditises them. This is the threat — turn it up to stress-test doing nothing." />
+              <Slider label="Adoption rate" value={params.adoptionRate} min={0} max={1} step={0.05} onChange={(v) => update({ adoptionRate: v })} fmt={(v) => fmtPct(v)} hint="How much of the AI opportunity we actually realise. 100% = every tool used on every account. Low = we own the tools but leave the savings on the table." />
+              <Slider label="Horizon" value={params.horizonYear} min={0} max={5} step={1} onChange={(v) => update({ horizonYear: v })} fmt={(v) => (v === 0 ? "Now" : `Year ${v}`)} hint="Which year we're looking at. The rebuild phases in over ~2 years, so Year 0 ≈ today and the full effect lands by Year 2–3." />
             </div>
           </div>
 
           <div className="card p-5">
-            <div className="mb-4 eyebrow">Cost structure</div>
+            <div className="mb-1 eyebrow">Cost structure — what the rebuilt agency costs</div>
+            <p className="mb-4 text-[11px] leading-snug text-ink-400">The two big cost levers: what people cost, and what the tools cost.</p>
             <div className="grid gap-5 sm:grid-cols-2">
-              <Slider label="Avg loaded cost / head" value={params.loadedCostPerHead} min={100_000} max={180_000} step={1_000} onChange={(v) => update({ loadedCostPerHead: v })} fmt={(v) => fmtMoneyShort(v)} hint="Zero-state skews senior — fewer people, paid more." />
-              <Slider label="AI / tooling spend p.a." value={params.aiSpendPerYear} min={100_000} max={250_000} step={5_000} onChange={(v) => update({ aiSpendPerYear: v })} fmt={(v) => fmtMoneyShort(v)} />
+              <Slider label="Avg loaded cost / head" value={params.loadedCostPerHead} min={100_000} max={180_000} step={1_000} onChange={(v) => update({ loadedCostPerHead: v })} fmt={(v) => fmtMoneyShort(v)} hint="Fully-loaded annual cost of an average person (salary + super + on-costs). The Zero org is fewer, more senior people — so higher than today's ~$117k/head." />
+              <Slider label="AI / tooling spend p.a." value={params.aiSpendPerYear} min={100_000} max={250_000} step={5_000} onChange={(v) => update({ aiSpendPerYear: v })} fmt={(v) => fmtMoneyShort(v)} hint="Annual spend on AI tools and platforms. Up from today's ~$153k — redirected from headcount and expanded." />
             </div>
 
             <div className="mt-5 flex items-center justify-between rounded-lg bg-rule_soft px-3 py-2.5">
               <div>
-                <div className="text-[13px] font-medium text-ink-700">Owner comp in opex</div>
-                <div className="text-[11px] text-ink-300">Market-rate MD + CEO salaries ({fmtMoneyShort(params.ownerComp)}) — must be explicit or the model is dishonest.</div>
+                <div className="text-[13px] font-medium text-ink-700">Count owners' salaries as a cost</div>
+                <div className="text-[11px] text-ink-300">Puts market-rate MD + CEO pay ({fmtMoneyShort(params.ownerComp)}) into expenses. On = honest profit after paying the owners properly; off = profit before owner pay. Keep it explicit either way.</div>
               </div>
               <button
                 onClick={() => update({ ownerCompInOpex: !params.ownerCompInOpex })}
@@ -148,12 +156,12 @@ export default function ModelPage() {
           {/* FTE steppers */}
           <div className="card p-5">
             <div className="mb-1 flex items-center justify-between">
-              <div className="eyebrow">FTE per value-chain stage (target)</div>
+              <div className="eyebrow">Team size per stage — the target org</div>
               <button onClick={() => setConservatism(params.conservatism)} className="text-[11px] font-semibold text-accent-dark hover:underline">
                 Reset to derived
               </button>
             </div>
-            <p className="mb-3 text-[11px] text-ink-300">Seeded from the derived Zero org. Total today {totalTodayFte().toFixed(1)} → target {Object.values(params.fteByStage).reduce((a, b) => a + b, 0).toFixed(1)}.</p>
+            <p className="mb-3 text-[11px] leading-snug text-ink-400">How many people each part of the agency keeps in the rebuild. Seeded from the Workshop; nudge any stage to test "what if we kept one more here?". Total today <b className="text-ink-700">{totalTodayFte().toFixed(1)}</b> → target <b className="text-accent-dark">{Object.values(params.fteByStage).reduce((a, b) => a + b, 0).toFixed(1)}</b>.</p>
             <div className="grid gap-2 sm:grid-cols-2">
               {stages.map((s) => {
                 const v = params.fteByStage[s.id] ?? 0;
@@ -174,21 +182,23 @@ export default function ModelPage() {
 
         {/* ---- live outputs ---- */}
         <div className="lg:sticky lg:top-20 lg:self-start">
+          <div className="mb-2 text-[11px] font-semibold uppercase tracking-[0.14em] text-ink-300">What it produces →</div>
           <div className={clsx("card overflow-hidden", aboveFloor ? "border-positive/40" : "border-negative/50")}>
             <div className="border-b border-rule p-5">
               <div className="flex items-center justify-between">
                 <div className="eyebrow">Net profit {params.horizonYear === 0 ? "now" : `· year ${params.horizonYear}`}</div>
-                <button onClick={() => setShowBands((b) => !b)} className="text-[11px] font-semibold text-accent-dark hover:underline">
-                  {showBands ? "Point estimate" : "Show band"}
+                <button onClick={() => setShowBands((b) => !b)} title="A range allows for ±10% error on revenue and ±5% on costs. A single number is the mid-point." className="text-[11px] font-semibold text-accent-dark hover:underline">
+                  {showBands ? "Show one number" : "Show the range"}
                 </button>
               </div>
               <div className={clsx("tnum mt-1 text-3xl font-extrabold tracking-tight", aboveFloor ? "text-positive" : "text-negative")}>
                 {rangeText(banded.low.profit, banded.high.profit)}
               </div>
-              <div className="mt-1 text-[12px] text-ink-500">
-                {aboveFloor ? "above" : "below"} the $1m floor by {fmtMoneyShort(Math.abs(out.floorHeadroom))} ·{" "}
+              <div className="mt-1 text-[11px] text-ink-400">{showBands ? "range — allowing ±10% error on revenue, ±5% on cost" : "mid-point estimate"}</div>
+              <div className="mt-1.5 text-[12px] text-ink-500">
+                {aboveFloor ? "above" : "below"} the <span title="A self-imposed line: we don't want annual profit to fall under $1m.">$1m floor</span> by {fmtMoneyShort(Math.abs(out.floorHeadroom))} ·{" "}
                 <span className={deltaVsSq >= 0 ? "text-positive" : "text-negative"}>
-                  {deltaVsSq >= 0 ? "+" : "−"}{fmtMoneyShort(Math.abs(deltaVsSq))} vs status quo
+                  {deltaVsSq >= 0 ? "+" : "−"}{fmtMoneyShort(Math.abs(deltaVsSq))} vs doing nothing
                 </span>
               </div>
             </div>
@@ -225,7 +235,7 @@ export default function ModelPage() {
                   <dd className="tnum font-bold text-ink-900">{fmtMoney(out.profit)}</dd>
                 </div>
               </dl>
-              <div className="mt-2 text-[11px] text-ink-300">Thin-month cash cushion ≈ {fmtMoneyShort(out.thinMonthCushion)} (worst month proxy).</div>
+              <div className="mt-2 text-[11px] leading-snug text-ink-300">Thin-month cash cushion ≈ {fmtMoneyShort(out.thinMonthCushion)} — what's left in the year's worst month (today several months run near breakeven, so this is the resilience test).</div>
             </div>
           </div>
 
