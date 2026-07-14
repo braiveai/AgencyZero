@@ -40,7 +40,7 @@ export default function Rebuild() {
   return (
     <div>
       <PageHead
-        eyebrow="The rebuild · dream state"
+        eyebrow="Step 3 · The rebuild — dream state"
         title="Sunny, rebuilt — on one page"
         lead="The destination to work back from. AI systems run the spine, continuously, across every stage. Humans hold a handful of moments — the relationship and the judgement. What stays gold is exactly what we'd hire for."
       />

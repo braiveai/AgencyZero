@@ -69,7 +69,7 @@ export default function Horizons() {
   return (
     <div>
       <PageHead
-        eyebrow="S4 · Horizons"
+        eyebrow="Step 5 · Horizons — the glide path"
         title="The glide path (18–24 months)"
         lead="Zero is the marker; this is the plan. H1: don't backfill attrition, force adoption in Optimise + Prove. H2: restructure roles around new workflows. H3: compound — grow revenue on flat headcount."
       />

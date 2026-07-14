@@ -49,7 +49,7 @@ export default function StartHere() {
   return (
     <div>
       <PageHead
-        eyebrow="The decision · start here"
+        eyebrow="Step 7 · The decision — start here"
         title="Where the overhead is — and where to start"
         lead="Zero is the marker; the Middle Path is the target; this is where you start on Monday. Every process ranked by the human time AI can take back. The deepest pools that sit behind tools we already own — start there."
       />

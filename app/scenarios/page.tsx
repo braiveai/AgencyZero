@@ -53,7 +53,7 @@ export default function Scenarios() {
   return (
     <div>
       <PageHead
-        eyebrow="S5 · Scenarios"
+        eyebrow="Step 6 · Scenarios"
         title="Compare"
         lead="The capacity dividend is a choice: take it as profit (same revenue, half the people) or as growth (same people, more revenue). Growth is the preferred use — lead with it."
       />

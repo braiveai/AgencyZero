@@ -143,7 +143,7 @@ export default function ValueChainWorkshop() {
   return (
     <div>
       <PageHead
-        eyebrow="S2 · Value chain — workshop"
+        eyebrow="Deep-dive · Workshop"
         title="Build it with them, process by process"
         lead="For each thing the agency does: is it required, who does it today, and how much can AI take? The headcount falls out of your answers — no hour estimates. Add anything we've missed."
       />

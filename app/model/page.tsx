@@ -104,7 +104,7 @@ export default function ModelPage() {
   return (
     <div>
       <PageHead
-        eyebrow="S3 · The model"
+        eyebrow="Step 4 · The model"
         title="Scenario builder"
         lead="Move the assumptions on the left; the P&L, org size and profit floor on the right recalculate instantly. Every input is plain-English below — nothing here is a black box."
       />

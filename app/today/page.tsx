@@ -31,7 +31,7 @@ export default function Today() {
   return (
     <div>
       <PageHead
-        eyebrow="S1 · Today, honestly"
+        eyebrow="Step 1 · Today, honestly"
         title="The FY26 baseline"
         lead="Verified starting point from the Xero export, reconciled against the sunnyrev retainer book. We are healthy — which is exactly why now is the time to rebuild from strength, not distress."
       />

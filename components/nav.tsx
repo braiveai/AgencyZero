@@ -4,15 +4,17 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import clsx from "clsx";
 
+// Left-to-right = the running order of the session. Workshop is the optional
+// deep-dive, parked at the end (after the decision) with a divider before it.
 const LINKS = [
-  { href: "/today", label: "Today", n: "S1" },
-  { href: "/confirm", label: "Confirm", n: "" },
-  { href: "/rebuild", label: "The Rebuild", n: "" },
-  { href: "/value-chain", label: "Workshop", n: "S2" },
-  { href: "/model", label: "The Model", n: "S3" },
-  { href: "/horizons", label: "Horizons", n: "S4" },
-  { href: "/scenarios", label: "Scenarios", n: "S5" },
-  { href: "/start", label: "Start Here", n: "" },
+  { href: "/today", label: "Today" },
+  { href: "/confirm", label: "Confirm" },
+  { href: "/rebuild", label: "The Rebuild" },
+  { href: "/model", label: "The Model" },
+  { href: "/horizons", label: "Horizons" },
+  { href: "/scenarios", label: "Scenarios" },
+  { href: "/start", label: "Start Here" },
+  { href: "/value-chain", label: "Workshop", deep: true },
 ];
 
 export function Nav() {
@@ -33,18 +35,23 @@ export function Nav() {
           {LINKS.map((l) => {
             const active = path === l.href || (path === "/" && l.href === "/today");
             return (
-              <Link
-                key={l.href}
-                href={l.href}
-                className={clsx(
-                  "whitespace-nowrap rounded-lg px-3 py-1.5 text-[13px] font-medium transition-colors",
-                  active
-                    ? "bg-ink-900 text-paper"
-                    : "text-ink-500 hover:bg-rule_soft hover:text-ink-900",
-                )}
-              >
-                {l.label}
-              </Link>
+              <span key={l.href} className="flex items-center gap-1">
+                {l.deep && <span className="mx-1 h-4 w-px shrink-0 bg-rule" aria-hidden />}
+                <Link
+                  href={l.href}
+                  title={l.deep ? "The deep-dive — build the model with them (or a follow-up session)" : undefined}
+                  className={clsx(
+                    "whitespace-nowrap rounded-lg px-3 py-1.5 text-[13px] font-medium transition-colors",
+                    active
+                      ? "bg-ink-900 text-paper"
+                      : l.deep
+                        ? "text-ink-300 hover:bg-rule_soft hover:text-ink-900"
+                        : "text-ink-500 hover:bg-rule_soft hover:text-ink-900",
+                  )}
+                >
+                  {l.label}
+                </Link>
+              </span>
             );
           })}
         </nav>

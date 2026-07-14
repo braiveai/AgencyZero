@@ -109,7 +109,7 @@ export default function Confirm() {
   return (
     <div>
       <PageHead
-        eyebrow="Before you start · confirm"
+        eyebrow="Step 2 · Confirm the assumptions"
         title="The assumptions behind every number"
         lead="Nothing in this tool is a black box. Here's everything baked into the maths — the financials from Xero, the rates, the planning defaults, and what the automation levels actually mean. Change anything that's wrong; it flows through the whole model."
       />
