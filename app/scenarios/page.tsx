@@ -6,7 +6,7 @@ import { runModel, type ScenarioParams } from "@/lib/model/engine";
 import { makePresets } from "@/lib/model/presets";
 import { fmtMoneyShort, fmtPct } from "@/lib/format";
 import { PageHead } from "@/components/ui";
-import { deleteScenario, loadScenarios, type SavedScenario } from "@/lib/scenario-store";
+import { deleteScenario, loadScenarios, pullScenarios, type SavedScenario } from "@/lib/scenario-store";
 import { useAssumptions } from "@/lib/model/assumptions";
 
 interface Card {
@@ -24,7 +24,10 @@ function metrics(p: ScenarioParams) {
 
 export default function Scenarios() {
   const [saved, setSaved] = useState<SavedScenario[]>([]);
-  useEffect(() => setSaved(loadScenarios()), []);
+  useEffect(() => {
+    setSaved(loadScenarios());
+    pullScenarios().then((r) => { if (r) setSaved(r); });
+  }, []);
   const a = useAssumptions();
 
   const presets = makePresets("base", 3, a);

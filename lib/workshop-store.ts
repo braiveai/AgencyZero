@@ -3,8 +3,10 @@
 import { stages as defaultStages } from "@/lib/model/processes";
 import { staff as defaultStaff } from "@/lib/model/staff";
 import type { Stage, StaffRole } from "@/lib/model/types";
+import { pullRemote, pushRemote } from "@/lib/remote";
 
 const KEY = "az_workshop_v1";
+const RK = "workshop";
 
 export interface WorkshopState {
   stages: Stage[];
@@ -33,13 +35,22 @@ export function loadWorkshop(): WorkshopState {
 }
 
 export function saveWorkshop(state: WorkshopState) {
-  if (typeof window === "undefined") return;
-  window.localStorage.setItem(KEY, JSON.stringify(state));
+  if (typeof window !== "undefined") window.localStorage.setItem(KEY, JSON.stringify(state));
+  pushRemote(RK, state);
 }
 
 export function resetWorkshop(): WorkshopState {
   if (typeof window !== "undefined") window.localStorage.removeItem(KEY);
-  return defaultWorkshop();
+  const d = defaultWorkshop();
+  pushRemote(RK, d);
+  return d;
+}
+
+/** Pull the shared server copy (null if none / unconfigured). */
+export async function pullWorkshop(): Promise<WorkshopState | null> {
+  const r = await pullRemote<WorkshopState>(RK);
+  if (!r || !r.stages || !r.staff) return null;
+  return { ...r, reviewed: r.reviewed ?? [] };
 }
 
 export function exportWorkshop(state: WorkshopState): string {

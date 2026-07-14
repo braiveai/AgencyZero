@@ -33,11 +33,12 @@ Run the tabs left-to-right; the nav is the running order.
 
 ## Saving the outcome
 
+- **Everything autosaves to shared cloud storage (Supabase)** — the assumptions, the workshop, and saved scenarios sync across devices, so Roger and Sarah can open the link on their own laptops and see the same state. (localStorage is kept as an instant cache/offline fallback.)
+- Requires two env vars in Vercel: `SUPABASE_URL` and `SUPABASE_KEY` (or `SUPABASE_SERVICE_ROLE_KEY`). Without them the app silently falls back to per-device localStorage.
 - Hit **Save** (Model) or **Run the model** (Workshop) to snapshot the *entire* state — assumptions, org, processes — into a named card on **Scenarios**. That's your durable record of what the room decided.
-- **Reset** buttons restore the seed — useful to start fresh, dangerous mid-session. Don't hit them by accident.
-- Everything is on your machine only. For Roger/Sarah to explore on their own devices afterwards, we'd need to add cloud storage (Supabase) — not built in v1.
+- **Reset** buttons restore the seed — useful to start fresh, dangerous mid-session. Don't hit them by accident (Reset also clears the shared copy).
 
 ## If something breaks
 
 - Numbers look off? Check **Confirm** — an assumption may have been edited. "Reset to source" restores the Xero defaults.
-- Nothing saved on a different device? Expected — it's per-browser. Use your machine.
+- Nothing saved on a different device? Check the Supabase env vars are set in Vercel — without them each browser is isolated (localStorage only).

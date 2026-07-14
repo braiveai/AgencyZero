@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { baseline, rates } from "./baseline";
+import { pullRemote, pushRemote } from "@/lib/remote";
 
 // Every global assumption behind the model — surfaced and editable on /confirm,
 // threaded through the engine via DataCtx. Per-process detail (who/intensity/
@@ -70,24 +71,27 @@ export function defaultAssumptions(): Assumptions {
 /** Frozen default the engine falls back to when no override is supplied. */
 export const DEFAULT_ASSUMPTIONS = defaultAssumptions();
 
-const KEY = "az_assumptions_v1";
+const KEY = "az_assumptions_v1"; // localStorage
+const RK = "assumptions"; // server key (matches the API allow-list)
+
+/** Merge a saved/remote blob over defaults so new fields always exist. */
+function merge(saved: Partial<Assumptions> | null): Assumptions {
+  const d = defaultAssumptions();
+  if (!saved) return d;
+  return {
+    ...d,
+    ...saved,
+    financials: { ...d.financials, ...saved.financials },
+    rates: { ...d.rates, ...saved.rates },
+    residual: { ...d.residual, ...saved.residual },
+    intensity: { ...d.intensity, ...saved.intensity },
+  };
+}
 
 export function loadAssumptions(): Assumptions {
   if (typeof window === "undefined") return defaultAssumptions();
   try {
-    const raw = window.localStorage.getItem(KEY);
-    if (!raw) return defaultAssumptions();
-    // shallow-merge so new fields survive older saves
-    const saved = JSON.parse(raw);
-    const d = defaultAssumptions();
-    return {
-      ...d,
-      ...saved,
-      financials: { ...d.financials, ...saved.financials },
-      rates: { ...d.rates, ...saved.rates },
-      residual: { ...d.residual, ...saved.residual },
-      intensity: { ...d.intensity, ...saved.intensity },
-    };
+    return merge(JSON.parse(window.localStorage.getItem(KEY) || "null"));
   } catch {
     return defaultAssumptions();
   }
@@ -95,16 +99,29 @@ export function loadAssumptions(): Assumptions {
 
 export function saveAssumptions(a: Assumptions) {
   if (typeof window !== "undefined") window.localStorage.setItem(KEY, JSON.stringify(a));
+  pushRemote(RK, a);
 }
 
 export function resetAssumptions(): Assumptions {
   if (typeof window !== "undefined") window.localStorage.removeItem(KEY);
-  return defaultAssumptions();
+  const d = defaultAssumptions();
+  pushRemote(RK, d);
+  return d;
 }
 
-/** Read-only hook for consumer screens: returns the saved assumptions (defaults on server/first paint). */
+/** Read-only hook for consumer screens: returns the saved assumptions (localStorage
+ *  first for an instant paint, then the shared server copy if there is one). */
 export function useAssumptions(): Assumptions {
   const [a, setA] = useState<Assumptions>(defaultAssumptions);
-  useEffect(() => setA(loadAssumptions()), []);
+  useEffect(() => {
+    setA(loadAssumptions());
+    pullRemote<Partial<Assumptions>>(RK).then((r) => {
+      if (r) {
+        const merged = merge(r);
+        setA(merged);
+        if (typeof window !== "undefined") window.localStorage.setItem(KEY, JSON.stringify(merged));
+      }
+    });
+  }, []);
   return a;
 }

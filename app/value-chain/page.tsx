@@ -34,6 +34,7 @@ import { PageHead } from "@/components/ui";
 import {
   defaultWorkshop,
   loadWorkshop,
+  pullWorkshop,
   resetWorkshop,
   saveWorkshop,
   type WorkshopState,
@@ -74,6 +75,8 @@ export default function ValueChainWorkshop() {
     setState(s);
     setOpenStages({ [s.stages[0]?.id]: true });
     setReady(true);
+    // then adopt the shared server copy if there is one
+    pullWorkshop().then((r) => { if (r) setState(r); });
   }, []);
   useEffect(() => { if (ready) saveWorkshop(state); }, [state, ready]);
 

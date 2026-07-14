@@ -103,7 +103,15 @@ npm run build
   `AGENCY_ZERO_PASSPHRASE` env var. Unset in local dev ⇒ gate is a no-op.
 - `noindex` / `X-Robots-Tag` headers, no analytics. Use a non-guessable subdomain
   and Vercel deployment protection on previews.
-- Persistence is localStorage only (v1). No DB.
+- **Persistence: shared cloud storage (Supabase) with a localStorage cache.** All
+  state (assumptions, workshop, saved scenarios) autosaves to a single keyed table
+  (`az_state`) via the passphrase-gated `/api/state/[key]` route. The Supabase key
+  is **server-only** (never `NEXT_PUBLIC`), so the confidential state never ships to
+  the browser and is reachable only through the gated API. If the Supabase env vars
+  are unset, the app falls back to per-device localStorage automatically.
 
-To deploy: set `AGENCY_ZERO_PASSPHRASE` in Vercel project env vars, enable
-deployment protection, ship.
+To deploy: set these in Vercel project env vars, enable deployment protection, ship.
+- `AGENCY_ZERO_PASSPHRASE` — the shared gate.
+- `SUPABASE_URL` — `https://ayvpehgikayczgydqsrs.supabase.co`
+- `SUPABASE_SERVICE_ROLE_KEY` (preferred) **or** `SUPABASE_KEY` (publishable/anon) —
+  server-only; grab from the Supabase dashboard → Project Settings → API.
