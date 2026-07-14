@@ -91,7 +91,12 @@ export default function Horizons() {
       <div className="mt-6 grid gap-4 lg:grid-cols-2">
         <div className="card p-5">
           <div className="eyebrow mb-1">Annual net profit — Zero vs Status Quo</div>
-          <p className="mb-3 text-[13px] text-ink-500">Status quo drifts toward the floor as digital fees compress. Zero pulls away.</p>
+          <p className="mb-1 text-[13px] leading-snug text-ink-500">
+            Two paths over four years. <b className="text-accent-dark">Gold — Agency Zero:</b> profit climbs as the rebuild lands. <b className="text-negative">Red — Status Quo:</b> profit sinks toward the dashed <b>$1m floor</b> as digital fees compress and costs stay put.
+          </p>
+          <p className="mb-3 text-[12px] leading-snug text-ink-400">
+            Read it as the <b>gap between the lines</b> — that's the annual cost of doing nothing{breakEven ? `, opening up from the Year ${breakEven} crossover` : ""}. By Year&nbsp;4 it's ~{fmtMoneyShort(proj[proj.length - 1].zProfit - proj[proj.length - 1].sProfit)} a year.
+          </p>
           <ProfitLines
             years={YEARS}
             series={[
@@ -102,19 +107,23 @@ export default function Horizons() {
         </div>
         <div className="card p-5">
           <div className="eyebrow mb-1">Headcount curve</div>
-          <p className="mb-3 text-[13px] text-ink-500">
-            {path === "restructure" ? "Restructure-led: faster glide to the Zero org." : "Attrition-led: departures simply aren't backfilled."}
+          <p className="mb-1 text-[13px] leading-snug text-ink-500">
+            One line: total headcount gliding from ~{proj[0].headcount.toFixed(0)} today down to ~{proj[proj.length - 1].headcount.toFixed(0)} as roles aren't backfilled and the work shifts to systems.
+          </p>
+          <p className="mb-3 text-[12px] leading-snug text-ink-400">
+            The <b>{path === "restructure" ? "Restructure-led" : "Attrition-led"}</b> toggle sets the pace — {path === "restructure" ? "faster (~18 months), with a redundancy cost" : "slower (~3 years), no redundancy — you simply don't re-hire departures"}. The steeper the drop, the sooner the savings.
           </p>
           <ProfitLines
             years={YEARS}
             series={[{ key: "h", label: "FTE", color: "ink", values: proj.map((p) => p.headcount) }]}
           />
-          <p className="mt-1 text-[11px] text-ink-300">(FTE on the same axis — read the shape, not the dollar labels.)</p>
+          <p className="mt-1 text-[11px] text-ink-300">Read the shape of the descent, not the axis labels — this chart reuses the profit chart's dollar scale, so the numbers on the left don't apply here.</p>
         </div>
       </div>
 
       <div className="mt-4 card overflow-x-auto p-5">
-        <div className="eyebrow mb-3">Year-by-year</div>
+        <div className="eyebrow mb-1">Year-by-year</div>
+        <p className="mb-3 text-[12px] leading-snug text-ink-400">The two profit columns behind the chart. <b>Cumulative gain</b> adds up the yearly difference (incl. any redundancy) — it starts negative while you invest, then turns positive at break-even and compounds. That final figure is the total profit Zero earns over Status Quo across the four years.</p>
         <table className="w-full min-w-[560px] text-[12px]">
           <thead>
             <tr className="border-b border-rule text-left text-ink-300">
