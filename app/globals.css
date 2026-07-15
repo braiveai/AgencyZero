@@ -75,3 +75,37 @@ input[type="range"]::-moz-range-thumb {
     transform: none !important;
   }
 }
+
+/* Report: a portrait A4 leave-behind. Named page so it stays portrait even though
+   the deck declares the default page as landscape above. */
+@page report {
+  size: A4 portrait;
+  margin: 14mm 13mm;
+}
+@media print {
+  .report {
+    page: report;
+  }
+  /* hide everything on screen chrome; only the report prints */
+  .report-noprint {
+    display: none !important;
+  }
+  .report-section {
+    break-before: page;
+    page-break-before: always;
+  }
+  .report-section:first-of-type {
+    break-before: auto;
+    page-break-before: avoid;
+  }
+  .report-avoid {
+    break-inside: avoid;
+    page-break-inside: avoid;
+  }
+  /* let backgrounds/colours print */
+  .report,
+  .report * {
+    -webkit-print-color-adjust: exact;
+    print-color-adjust: exact;
+  }
+}
