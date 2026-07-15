@@ -1,24 +1,40 @@
 "use client";
 
-import { useCallback, useEffect, useState, type ReactNode } from "react";
+import { useCallback, useEffect, useMemo, useState, type ReactNode } from "react";
 import clsx from "clsx";
 import Link from "next/link";
 import { baseline } from "@/lib/model/baseline";
-import { stages } from "@/lib/model/processes";
 import { tools } from "@/lib/model/tools";
-import { runModel, totalTodayFte, totalZeroFte } from "@/lib/model/engine";
+import { runModel, totalTodayFte, totalZeroFte, type DataCtx, type ModelOutputs } from "@/lib/model/engine";
 import { makePresets } from "@/lib/model/presets";
+import { useWorkshopCtx } from "@/lib/model/useWorkshopCtx";
 import { fmtMoneyShort, fmtPct } from "@/lib/format";
 import { MonthlyProfitChart } from "@/components/charts";
 import { LadderBadge } from "@/components/ui";
-import { LADDER } from "@/lib/model/types";
+import { LADDER, type Stage } from "@/lib/model/types";
 
-// ---- live figures ----------------------------------------------------------
-const azBase = runModel(makePresets("base", 3).find((p) => p.key === "agency-zero")!.params);
-const azCons = runModel(makePresets("conservative", 3).find((p) => p.key === "agency-zero")!.params);
-const sqY3 = runModel(makePresets("base", 3).find((p) => p.key === "status-quo")!.params);
-const zeroBase = totalZeroFte("base");
-const zeroCons = totalZeroFte("conservative");
+// ---- live figures, derived from the edited Workshop + Confirm ctx -----------
+interface DeckFigures {
+  stages: Stage[];
+  todayFte: number;
+  zeroBase: number;
+  zeroCons: number;
+  azBase: ModelOutputs;
+  azCons: ModelOutputs;
+  sqY3: ModelOutputs;
+}
+
+function deckFigures(ctx: DataCtx): DeckFigures {
+  return {
+    stages: ctx.stages,
+    todayFte: totalTodayFte(ctx),
+    zeroBase: totalZeroFte("base", ctx),
+    zeroCons: totalZeroFte("conservative", ctx),
+    azBase: runModel(makePresets("base", 3, ctx.assumptions, ctx).find((p) => p.key === "agency-zero")!.params),
+    azCons: runModel(makePresets("conservative", 3, ctx.assumptions, ctx).find((p) => p.key === "agency-zero")!.params),
+    sqY3: runModel(makePresets("base", 3, ctx.assumptions, ctx).find((p) => p.key === "status-quo")!.params),
+  };
+}
 
 // ---- slide primitives ------------------------------------------------------
 function Kicker({ children }: { children: ReactNode }) {
@@ -43,7 +59,9 @@ function TZ({ label, today, zero }: { label: string; today: string; zero: string
 }
 
 // ---- the 17 slides ---------------------------------------------------------
-const SLIDES: ReactNode[] = [
+function makeSlides(f: DeckFigures): ReactNode[] {
+  const { stages, azBase, azCons, sqY3, zeroBase, zeroCons } = f;
+  return [
   // 1
   <Slide key="1" className="items-start">
     <div className="text-[15px] font-bold tracking-[0.2em] text-ink-300">SUNNY ADVERTISING · CONFIDENTIAL</div>
@@ -227,7 +245,7 @@ const SLIDES: ReactNode[] = [
   // 12
   <Slide key="12">
     <Kicker>The Zero org</Kicker>
-    <H className="mt-3 text-5xl">{totalTodayFte().toFixed(0)} roles → ~{zeroBase.toFixed(1)}, derived bottom-up.</H>
+    <H className="mt-3 text-5xl">{f.todayFte.toFixed(0)} roles → ~{zeroBase.toFixed(1)}, derived bottom-up.</H>
     <p className="mt-3 max-w-3xl text-[16px] text-ink-500">Fewer, more senior, systems-literate. Not asserted — every number is Σ residual hours ÷ productive hours, so any line can be challenged live.</p>
     <div className="mt-6 grid gap-3 sm:grid-cols-3">
       {[
@@ -331,9 +349,12 @@ const SLIDES: ReactNode[] = [
       Open the model →
     </Link>
   </Slide>,
-];
+  ];
+}
 
 export default function Deck() {
+  const ctx = useWorkshopCtx();
+  const SLIDES = useMemo(() => makeSlides(deckFigures(ctx)), [ctx]);
   const [i, setI] = useState(0);
   const n = SLIDES.length;
   const go = useCallback((d: number) => setI((v) => Math.max(0, Math.min(n - 1, v + d))), [n]);

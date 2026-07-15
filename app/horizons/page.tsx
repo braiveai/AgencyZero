@@ -2,11 +2,9 @@
 
 import { useMemo, useState } from "react";
 import clsx from "clsx";
-import { ramp, runModel, totalRealisedFte, totalTodayFte, type DataCtx, type ScenarioParams } from "@/lib/model/engine";
+import { ramp, runModel, totalRealisedFte, totalTodayFte, type ScenarioParams } from "@/lib/model/engine";
 import { makePresets } from "@/lib/model/presets";
-import { useAssumptions } from "@/lib/model/assumptions";
-import { stages } from "@/lib/model/processes";
-import { staff } from "@/lib/model/staff";
+import { useWorkshopCtx } from "@/lib/model/useWorkshopCtx";
 import { fmtMoneyShort } from "@/lib/format";
 import { PageHead, Toggle, StatCard } from "@/components/ui";
 import { ProfitLines } from "@/components/charts";
@@ -15,12 +13,12 @@ const YEARS = [0, 1, 2, 3, 4];
 
 export default function Horizons() {
   const [path, setPath] = useState<"attrition" | "restructure">("restructure");
-  const a = useAssumptions();
-  const ctx = useMemo<DataCtx>(() => ({ stages, staff, assumptions: a }), [a]);
+  const ctx = useWorkshopCtx();
+  const a = ctx.assumptions;
   const PAYOUT_WEEKS = a.redundancyWeeks;
 
-  const zeroPreset = makePresets("base", 0, a).find((p) => p.key === "agency-zero")!.params;
-  const sqPreset = makePresets("base", 0, a).find((p) => p.key === "status-quo")!.params;
+  const zeroPreset = makePresets("base", 0, a, ctx).find((p) => p.key === "agency-zero")!.params;
+  const sqPreset = makePresets("base", 0, a, ctx).find((p) => p.key === "status-quo")!.params;
 
   const rampYears = path === "restructure" ? 1.5 : 3;
   const departingFte = totalTodayFte(ctx) - Object.values(zeroPreset.fteByStage).reduce((x, y) => x + y, 0);
@@ -61,7 +59,7 @@ export default function Horizons() {
         breakEven,
       };
     });
-  }, [path, rampYears, redundancyCost, a]);
+  }, [path, rampYears, redundancyCost, ctx]);
 
   const breakEven = proj.find((p) => p.breakEven)?.breakEven ?? null;
   const endDelta = proj[proj.length - 1].cumDelta;

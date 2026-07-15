@@ -2,15 +2,14 @@
 
 import { useMemo, useState } from "react";
 import clsx from "clsx";
-import { stages } from "@/lib/model/processes";
-import { staff } from "@/lib/model/staff";
-import { fteZeroForStage, totalZeroFte, type DataCtx } from "@/lib/model/engine";
-import { useAssumptions } from "@/lib/model/assumptions";
+import { fteZeroForStage, totalZeroFte } from "@/lib/model/engine";
+import { useWorkshopCtx } from "@/lib/model/useWorkshopCtx";
 import type { Process, Stage } from "@/lib/model/types";
 import { fmtNum } from "@/lib/format";
 import { PageHead } from "@/components/ui";
 
 const FRAME: Record<string, { trigger: string; outcome: string }> = {
+  brand: { trigger: "Before any lead exists", outcome: "Sunny's own brand, content and partnerships compound in the background — mostly machine-made, senior-curated." },
   win: { trigger: "A lead comes in", outcome: "We out-blueprint the field at pitch — without burning senior hours." },
   plan: { trigger: "The brief is understood", outcome: "A senior strategist ships a plan they'd stake their name on — in a fraction of the hours." },
   onboard: { trigger: "The client says yes", outcome: "Live in days, seeded straight from the winning blueprint." },
@@ -26,11 +25,11 @@ const humanProcs = (s: Stage) => s.processes.filter((p) => p.required && isHuman
 const aiProcs = (s: Stage) => s.processes.filter((p) => p.required && !isHuman(p));
 
 export default function Rebuild() {
-  const a = useAssumptions();
-  const ctx = useMemo<DataCtx>(() => ({ stages, staff, assumptions: a }), [a]);
+  const ctx = useWorkshopCtx();
+  const stages = ctx.stages;
   const [stageId, setStageId] = useState("prove");
-  const stage = stages.find((s) => s.id === stageId) as Stage;
-  const frame = FRAME[stageId];
+  const stage = (stages.find((s) => s.id === stageId) ?? stages[0]) as Stage;
+  const frame = FRAME[stage?.id] ?? FRAME.prove;
 
   const totals = useMemo(() => {
     const human = stages.reduce((n, s) => n + humanProcs(s).length, 0);

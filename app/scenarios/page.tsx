@@ -7,7 +7,7 @@ import { makePresets } from "@/lib/model/presets";
 import { fmtMoneyShort, fmtPct } from "@/lib/format";
 import { PageHead } from "@/components/ui";
 import { deleteScenario, loadScenarios, pullScenarios, type SavedScenario } from "@/lib/scenario-store";
-import { useAssumptions } from "@/lib/model/assumptions";
+import { useWorkshopCtx } from "@/lib/model/useWorkshopCtx";
 
 interface Card {
   key: string;
@@ -28,15 +28,16 @@ export default function Scenarios() {
     setSaved(loadScenarios());
     pullScenarios().then((r) => { if (r) setSaved(r); });
   }, []);
-  const a = useAssumptions();
+  const ctx = useWorkshopCtx();
+  const a = ctx.assumptions;
 
-  const presets = makePresets("base", 3, a);
+  const presets = makePresets("base", 3, a, ctx);
   const cards: Card[] = useMemo(
     () => [
       ...presets.map((p) => ({ key: p.key, name: p.name, blurb: p.blurb, params: p.params })),
       ...saved.map((s) => ({ key: s.id, name: s.name, blurb: "Saved on this device.", params: s.params, removable: true })),
     ],
-    [saved, a],
+    [saved, ctx],
   );
 
   const best = Math.max(...cards.map((c) => metrics(c.params).profit));

@@ -40,6 +40,7 @@ import {
   type WorkshopState,
 } from "@/lib/workshop-store";
 import { saveScenario } from "@/lib/scenario-store";
+import { SessionBackup } from "@/components/session-backup";
 
 const AUTO_OPTS: Automatability[] = ["none", "some", "most", "nearly-all"];
 const AUTO_SHORT: Record<Automatability, string> = { none: "None", some: "Some", most: "Most", "nearly-all": "Nearly all" };
@@ -176,6 +177,11 @@ export default function ValueChainWorkshop() {
           <button onClick={() => { if (confirm("Reset to the seeded strawman? This clears your workshop edits.")) setState(resetWorkshop()); }} className="rounded-lg border border-rule px-3 py-1.5 text-[12px] font-semibold text-ink-500 hover:text-ink-900">Reset</button>
           <button onClick={runModel} className="rounded-lg bg-ink-900 px-4 py-1.5 text-[13px] font-semibold text-paper">Run the model →</button>
         </div>
+      </div>
+
+      {/* session backup — the room's inputs live in this browser until saved out */}
+      <div className="mb-5">
+        <SessionBackup />
       </div>
 
       {/* roster */}

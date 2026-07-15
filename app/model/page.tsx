@@ -1,20 +1,17 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useState } from "react";
 import clsx from "clsx";
-import { stages } from "@/lib/model/processes";
-import { staff } from "@/lib/model/staff";
 import {
   deriveZeroFteByStage,
   runModel,
   runModelBanded,
   totalTodayFte,
   type Conservatism,
-  type DataCtx,
   type ScenarioParams,
 } from "@/lib/model/engine";
 import { defaultParams, makePresets } from "@/lib/model/presets";
-import { useAssumptions } from "@/lib/model/assumptions";
+import { useWorkshopCtx } from "@/lib/model/useWorkshopCtx";
 import { fmtMoney, fmtMoneyShort, fmtPct } from "@/lib/format";
 import { PageHead, Toggle } from "@/components/ui";
 import { saveScenario } from "@/lib/scenario-store";
@@ -59,31 +56,28 @@ function Slider({
 }
 
 export default function ModelPage() {
-  const a = useAssumptions();
-  const ctx = useMemo<DataCtx>(() => ({ stages, staff, assumptions: a }), [a]);
+  const ctx = useWorkshopCtx();
+  const a = ctx.assumptions;
+  const stages = ctx.stages;
   const [params, setParams] = useState<ScenarioParams>(() => defaultParams());
   const [showBands, setShowBands] = useState(true);
   const [saveName, setSaveName] = useState("");
   const [saved, setSaved] = useState(false);
 
-  // Reseed from the (possibly edited) assumptions once they load. `a` only
-  // changes on mount, so this doesn't clobber live slider edits.
-  useEffect(() => setParams(defaultParams(a)), [a]);
+  // Reseed from the (possibly edited) Workshop + assumptions once they load.
+  // `ctx` is stable between loads, so this doesn't clobber live slider edits.
+  useEffect(() => setParams(defaultParams(a, ctx)), [ctx, a]);
 
   const update = (patch: Partial<ScenarioParams>) => setParams((p) => ({ ...p, ...patch }));
 
   const setConservatism = (c: Conservatism) =>
     setParams((p) => ({ ...p, conservatism: c, fteByStage: deriveZeroFteByStage(c, ctx) }));
 
-  const banded = useMemo(() => runModelBanded(params), [params]);
+  const banded = runModelBanded(params);
   const out = banded.base;
 
-  const statusQuo = useMemo(
-    () =>
-      runModel(
-        makePresets(params.conservatism, params.horizonYear, a).find((p) => p.key === "status-quo")!.params,
-      ),
-    [params.conservatism, params.horizonYear, a],
+  const statusQuo = runModel(
+    makePresets(params.conservatism, params.horizonYear, a, ctx).find((p) => p.key === "status-quo")!.params,
   );
 
   const deltaVsSq = out.profit - statusQuo.profit;

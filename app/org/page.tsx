@@ -2,10 +2,9 @@
 
 import { useMemo, useState } from "react";
 import clsx from "clsx";
-import { staff, partners } from "@/lib/model/staff";
-import { stages } from "@/lib/model/processes";
-import { roleAbsorption, totalTodayFte, totalZeroFte, type Conservatism, type DataCtx } from "@/lib/model/engine";
-import { useAssumptions } from "@/lib/model/assumptions";
+import { partners } from "@/lib/model/staff";
+import { roleAbsorption, totalTodayFte, totalZeroFte, type Conservatism } from "@/lib/model/engine";
+import { useWorkshopCtx } from "@/lib/model/useWorkshopCtx";
 import { fmtNum, fmtPct } from "@/lib/format";
 import { PageHead, Toggle } from "@/components/ui";
 
@@ -36,13 +35,13 @@ function AidMeter({ aid }: { aid: number }) {
 }
 
 export default function OrgChart() {
-  const a = useAssumptions();
+  const ctx = useWorkshopCtx();
+  const staff = ctx.staff;
   const [con, setCon] = useState<Conservatism>("base");
   const [showNames, setShowNames] = useState(false);
-  const ctx = useMemo<DataCtx>(() => ({ stages, staff, assumptions: a }), [a]);
 
-  const byId = useMemo(() => Object.fromEntries(staff.map((r) => [r.id, r])), []);
-  const abs = useMemo(() => Object.fromEntries(staff.map((r) => [r.id, roleAbsorption(r.id, con, ctx)])), [con, ctx]);
+  const byId = useMemo(() => Object.fromEntries(staff.map((r) => [r.id, r])), [staff]);
+  const abs = useMemo(() => Object.fromEntries(staff.map((r) => [r.id, roleAbsorption(r.id, con, ctx)])), [con, ctx, staff]);
 
   const today = totalTodayFte(ctx);
   const zero = totalZeroFte(con, ctx);

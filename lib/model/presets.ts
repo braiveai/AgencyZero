@@ -15,12 +15,12 @@ export const OWNER_COMP_DEFAULT = 400_000;
 const ctxWith = (a: Assumptions): DataCtx => ({ stages, staff, assumptions: a });
 
 const todayFteByStage = (ctx: DataCtx): Record<string, number> =>
-  Object.fromEntries(stages.map((s) => [s.id, fteTodayForStage(s, ctx)]));
+  Object.fromEntries(ctx.stages.map((s) => [s.id, fteTodayForStage(s, ctx)]));
 
 const midpointFteByStage = (ctx: DataCtx): Record<string, number> => {
   const zero = deriveZeroFteByStage("base", ctx);
   const today = todayFteByStage(ctx);
-  return Object.fromEntries(stages.map((s) => [s.id, (today[s.id] + zero[s.id]) / 2]));
+  return Object.fromEntries(ctx.stages.map((s) => [s.id, (today[s.id] + zero[s.id]) / 2]));
 };
 
 export interface Preset {
@@ -34,8 +34,11 @@ export function makePresets(
   conservatism: Conservatism = "base",
   horizonYear = 3,
   a: Assumptions = DEFAULT_ASSUMPTIONS,
+  editedCtx?: DataCtx,
 ): Preset[] {
-  const ctx = ctxWith(a);
+  // Prefer the edited Workshop ctx (its stages/staff drive the target org); fall
+  // back to the seeded strawman. Assumptions always come from `a`.
+  const ctx: DataCtx = editedCtx ? { ...editedCtx, assumptions: a } : ctxWith(a);
   // Today's loaded cost is anchored to verified payroll ÷ derived headcount.
   const loadedTodayAnnual = a.financials.peopleCost / totalTodayFte(ctx);
   const loadedZeroAnnual = a.rates.loadedHourlyZero * a.rates.productiveHoursPerMonth * 12;
@@ -98,5 +101,8 @@ export function makePresets(
   ];
 }
 
-export const defaultParams = (a: Assumptions = DEFAULT_ASSUMPTIONS): ScenarioParams =>
-  makePresets("base", 3, a).find((p) => p.key === "agency-zero")!.params;
+export const defaultParams = (
+  a: Assumptions = DEFAULT_ASSUMPTIONS,
+  editedCtx?: DataCtx,
+): ScenarioParams =>
+  makePresets("base", 3, a, editedCtx).find((p) => p.key === "agency-zero")!.params;

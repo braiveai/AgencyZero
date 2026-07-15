@@ -2,20 +2,19 @@
 
 import { useMemo } from "react";
 import clsx from "clsx";
-import { stages } from "@/lib/model/processes";
-import { staff } from "@/lib/model/staff";
 import { tools } from "@/lib/model/tools";
-import { runModel, todayFteForProcess, totalTodayFte, totalZeroFte, zeroFteForProcess, type DataCtx } from "@/lib/model/engine";
+import { runModel, todayFteForProcess, totalTodayFte, totalZeroFte, zeroFteForProcess } from "@/lib/model/engine";
 import { makePresets } from "@/lib/model/presets";
-import { useAssumptions } from "@/lib/model/assumptions";
+import { useWorkshopCtx } from "@/lib/model/useWorkshopCtx";
 import { fmtMoneyShort, fmtNum } from "@/lib/format";
 import { PageHead } from "@/components/ui";
 
 const toolMap = Object.fromEntries(tools.map((t) => [t.id, t]));
 
 export default function StartHere() {
-  const a = useAssumptions();
-  const ctx = useMemo<DataCtx>(() => ({ stages, staff, assumptions: a }), [a]);
+  const ctx = useWorkshopCtx();
+  const a = ctx.assumptions;
+  const stages = ctx.stages;
   const opps = useMemo(() => {
     const rows = stages.flatMap((s) =>
       s.processes
@@ -44,7 +43,7 @@ export default function StartHere() {
     return list;
   }, [opps]);
 
-  const middle = runModel(makePresets("base", 3, a).find((p) => p.key === "middle-path")!.params);
+  const middle = runModel(makePresets("base", 3, a, ctx).find((p) => p.key === "middle-path")!.params);
 
   return (
     <div>
