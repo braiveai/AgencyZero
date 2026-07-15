@@ -2,6 +2,8 @@
 
 import type { ScenarioParams } from "@/lib/model/engine";
 import { pullRemote, pushRemote } from "@/lib/remote";
+import { saveWorkshop } from "@/lib/workshop-store";
+import { saveAssumptions } from "@/lib/model/assumptions";
 
 const KEY = "az_scenarios_v1";
 const RK = "scenarios";
@@ -36,6 +38,24 @@ export function deleteScenario(id: string): SavedScenario[] {
   window.localStorage.setItem(KEY, JSON.stringify(next));
   pushRemote(RK, next);
   return next;
+}
+
+/** Whether a saved scenario carries a full ctx snapshot we can restore. */
+export function hasSnapshot(s: SavedScenario): boolean {
+  return !!s.params.ctx?.stages?.length && !!s.params.ctx?.staff?.length;
+}
+
+/**
+ * Restore a saved scenario's frozen ctx (stages + staff + assumptions) back into
+ * the live Workshop + Confirm stores, so the whole unified app reflects exactly
+ * what this scenario was built on. Returns true if it restored anything.
+ */
+export function restoreScenarioToModel(s: SavedScenario): boolean {
+  const ctx = s.params.ctx;
+  if (!ctx?.stages?.length || !ctx?.staff?.length) return false;
+  saveWorkshop({ stages: ctx.stages, staff: ctx.staff, reviewed: [] });
+  if (ctx.assumptions) saveAssumptions(ctx.assumptions);
+  return true;
 }
 
 /** Pull the shared server list; merges with any local-only saves (by id). */

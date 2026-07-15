@@ -1,12 +1,13 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
+import { useRouter } from "next/navigation";
 import clsx from "clsx";
 import { runModel, type ScenarioParams } from "@/lib/model/engine";
 import { makePresets } from "@/lib/model/presets";
 import { fmtMoneyShort, fmtPct } from "@/lib/format";
 import { PageHead } from "@/components/ui";
-import { deleteScenario, loadScenarios, pullScenarios, type SavedScenario } from "@/lib/scenario-store";
+import { deleteScenario, hasSnapshot, loadScenarios, pullScenarios, restoreScenarioToModel, type SavedScenario } from "@/lib/scenario-store";
 import { useWorkshopCtx } from "@/lib/model/useWorkshopCtx";
 
 interface Card {
@@ -15,6 +16,7 @@ interface Card {
   blurb?: string;
   params: ScenarioParams;
   removable?: boolean;
+  scenario?: SavedScenario;
 }
 
 function metrics(p: ScenarioParams) {
@@ -23,6 +25,7 @@ function metrics(p: ScenarioParams) {
 }
 
 export default function Scenarios() {
+  const router = useRouter();
   const [saved, setSaved] = useState<SavedScenario[]>([]);
   useEffect(() => {
     setSaved(loadScenarios());
@@ -31,11 +34,16 @@ export default function Scenarios() {
   const ctx = useWorkshopCtx();
   const a = ctx.assumptions;
 
+  function loadIntoModel(s: SavedScenario) {
+    if (!confirm(`Make "${s.name}" the live model? This replaces the current Workshop stages, staff and assumptions with this snapshot — every screen will reflect it.`)) return;
+    if (restoreScenarioToModel(s)) router.push("/rebuild");
+  }
+
   const presets = makePresets("base", 3, a, ctx);
   const cards: Card[] = useMemo(
     () => [
       ...presets.map((p) => ({ key: p.key, name: p.name, blurb: p.blurb, params: p.params })),
-      ...saved.map((s) => ({ key: s.id, name: s.name, blurb: "Saved on this device.", params: s.params, removable: true })),
+      ...saved.map((s) => ({ key: s.id, name: s.name, blurb: "Saved on this device.", params: s.params, removable: true, scenario: s })),
     ],
     [saved, ctx],
   );
@@ -85,6 +93,15 @@ export default function Scenarios() {
                   </div>
                 ))}
               </dl>
+              {c.scenario && hasSnapshot(c.scenario) && (
+                <button
+                  onClick={() => loadIntoModel(c.scenario!)}
+                  className="mt-4 w-full rounded-lg border border-ink-900 bg-ink-900 px-3 py-1.5 text-[12px] font-semibold text-paper hover:bg-ink-700"
+                  title="Restore this snapshot's stages, staff and assumptions as the live model everywhere"
+                >
+                  Load into Workshop →
+                </button>
+              )}
             </div>
           );
         })}
