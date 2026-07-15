@@ -18,10 +18,67 @@ import {
   zeroFteForProcess,
 } from "@/lib/model/engine";
 import { makePresets } from "@/lib/model/presets";
-import { fmtMoney, fmtMoneyShort, fmtNum, fmtPct } from "@/lib/format";
-import { MonthlyProfitChart, ProfitLines, RevenueMixDonut } from "@/components/charts";
+import { fmtMoneyShort, fmtNum, fmtPct } from "@/lib/format";
 
 const YEARS = [0, 1, 2, 3, 4];
+const MONTHS = ["Jul", "Aug", "Sep", "Oct", "Nov", "Dec", "Jan", "Feb", "Mar", "Apr", "May", "Jun"];
+
+// ---- print-safe charts: pure viewBox SVG, no ResponsiveContainer/measurement,
+// so they render identically on screen and in the PDF. ------------------------
+function MiniBars({ data }: { data: number[] }) {
+  const w = 320, h = 108, padB = 14, padT = 6;
+  const max = Math.max(...data, 1);
+  const bw = (w - 4) / data.length;
+  const avg = data.reduce((s, v) => s + v, 0) / data.length;
+  const y = (v: number) => padT + (1 - v / max) * (h - padT - padB);
+  return (
+    <svg viewBox={`0 0 ${w} ${h}`} className="w-full" role="img" aria-label="Monthly net profit">
+      <line x1={2} x2={w - 2} y1={y(avg)} y2={y(avg)} stroke="#8B8478" strokeDasharray="3 3" strokeWidth={0.7} />
+      {data.map((v, i) => {
+        const bh = Math.max(0, (v / max) * (h - padT - padB));
+        const fill = v < 50000 ? "#A33D2E" : v > 200000 ? "#3E5C3A" : "#FDB600";
+        return <rect key={i} x={2 + i * bw + 1.5} y={h - padB - bh} width={bw - 3} height={bh} rx={1.5} fill={fill} />;
+      })}
+      {MONTHS.map((m, i) => (
+        <text key={m} x={2 + i * bw + bw / 2} y={h - 3} fontSize="6.5" fill="#8B8478" textAnchor="middle">{m}</text>
+      ))}
+    </svg>
+  );
+}
+
+function MiniDonut({ trad, digital }: { trad: number; digital: number }) {
+  const total = trad + digital || 1;
+  const tFrac = trad / total;
+  const r = 30, c = 2 * Math.PI * r, cx = 50, cy = 50, sw = 16;
+  return (
+    <svg viewBox="0 0 100 100" style={{ width: 116, height: 116 }} className="mx-auto" role="img" aria-label="Revenue mix">
+      <circle cx={cx} cy={cy} r={r} fill="none" stroke="#1A1814" strokeWidth={sw} strokeDasharray={`${tFrac * c} ${c}`} transform={`rotate(-90 ${cx} ${cy})`} />
+      <circle cx={cx} cy={cy} r={r} fill="none" stroke="#FDB600" strokeWidth={sw} strokeDasharray={`${(1 - tFrac) * c} ${c}`} strokeDashoffset={-tFrac * c} transform={`rotate(-90 ${cx} ${cy})`} />
+    </svg>
+  );
+}
+
+function MiniLines({ years, z, s }: { years: number[]; z: number[]; s: number[] }) {
+  const w = 320, h = 150, padL = 34, padR = 6, padT = 8, padB = 16;
+  const FLOOR = 1_000_000;
+  const vals = [...z, ...s, FLOOR, 0];
+  const max = Math.max(...vals), min = Math.min(...vals);
+  const x = (i: number) => padL + i * ((w - padL - padR) / (years.length - 1));
+  const y = (v: number) => padT + (1 - (v - min) / (max - min || 1)) * (h - padT - padB);
+  const path = (arr: number[]) => arr.map((v, i) => `${i ? "L" : "M"}${x(i).toFixed(1)},${y(v).toFixed(1)}`).join(" ");
+  return (
+    <svg viewBox={`0 0 ${w} ${h}`} className="w-full" role="img" aria-label="Annual net profit — Zero vs Status Quo">
+      <line x1={padL} x2={w - padR} y1={y(FLOOR)} y2={y(FLOOR)} stroke="#A33D2E" strokeDasharray="4 3" strokeWidth={0.7} />
+      <text x={padL} y={y(FLOOR) - 2} fontSize="6.5" fill="#A33D2E">$1m floor</text>
+      <path d={path(z)} fill="none" stroke="#9A7100" strokeWidth={2} />
+      <path d={path(s)} fill="none" stroke="#A33D2E" strokeWidth={2} />
+      {years.map((yr, i) => (
+        <text key={i} x={x(i)} y={h - 4} fontSize="6.5" fill="#8B8478" textAnchor="middle">{yr === 0 ? "Now" : `Y${yr}`}</text>
+      ))}
+      <text x={2} y={y(max) + 3} fontSize="6.5" fill="#8B8478">{fmtMoneyShort(max)}</text>
+    </svg>
+  );
+}
 
 function SectionTitle({ n, kicker, title }: { n: string; kicker: string; title: string }) {
   return (
@@ -121,10 +178,16 @@ export default function Report() {
 
     return {
       sq, zero, mid, procs, roles, stageRoll, proj,
+      midParams: p("middle-path").params,
       breakEven: be, endDelta: proj[proj.length - 1].cumDelta,
       today: totalTodayFte(ctx), zeroFte: totalZeroFte("base", ctx),
     };
   }, [ctx, a]);
+
+  // The dials behind the highlighted "This session" column (or the Middle Path
+  // fallback) — surfaced so the reader sees what produced the numbers.
+  const heroParams = active ?? model.midParams;
+  const heroIsSession = !!active;
 
   const netProfitToday = f.gp - f.peopleCost - f.tooling - f.otherOpex;
   const totalFreed = model.today - model.zeroFte;
@@ -162,13 +225,17 @@ export default function Report() {
         <div className="report-avoid mt-4 grid grid-cols-[1.5fr_1fr] gap-4">
           <div className="rounded-xl border border-rule bg-surface p-4">
             <div className="eyebrow mb-2">Monthly net profit — FY26</div>
-            <MonthlyProfitChart data={baseline.monthlyProfit} />
+            <MiniBars data={baseline.monthlyProfit} />
             <p className="mt-2 text-[11px] text-ink-500">Several near-breakeven months — the engine is more fragile than the topline. Restructure from strength, not distress.</p>
           </div>
           <div className="rounded-xl border border-rule bg-surface p-4">
             <div className="eyebrow mb-2">Revenue mix — net</div>
-            <RevenueMixDonut trad={f.tradNet} digital={f.digitalNet} />
-            <div className="mt-2 text-center text-[11px] text-ink-500">The ~50/50 split nobody realises. Digital is the stable line AI compresses first.</div>
+            <MiniDonut trad={f.tradNet} digital={f.digitalNet} />
+            <div className="mt-2 flex justify-center gap-4 text-[10px] text-ink-500">
+              <span className="flex items-center gap-1"><span className="h-2 w-2 rounded-sm bg-ink-900" /> Trad {fmtPct(f.tradNet / (f.tradNet + f.digitalNet))}</span>
+              <span className="flex items-center gap-1"><span className="h-2 w-2 rounded-sm bg-accent" /> Digital {fmtPct(f.digitalNet / (f.tradNet + f.digitalNet))}</span>
+            </div>
+            <div className="mt-1 text-center text-[11px] text-ink-500">The ~50/50 split nobody realises — digital is the stable line AI compresses first.</div>
           </div>
         </div>
       </section>
@@ -262,6 +329,29 @@ export default function Report() {
               : <>Even the cautious read clears today&apos;s ~{fmtMoneyShort(netProfitToday)}. </>}
             The preferred use of the freed capacity is <b>growth</b> — same people, more revenue — not cuts.
           </p>
+
+          {/* the dials behind the highlighted model */}
+          <div className="report-avoid mt-5 rounded-xl border border-rule bg-rule_soft/40 p-4">
+            <div className="eyebrow mb-1">The assumptions behind {heroIsSession ? "this session's model" : "the Middle Path"}</div>
+            <p className="mb-3 text-[11px] leading-snug text-ink-400">Every number above the org sits on these dials — change any of them and the whole model moves. Nothing here is fixed.</p>
+            <div className="grid grid-cols-4 gap-2">
+              {[
+                { k: "Horizon", v: heroParams.horizonYear === 0 ? "Now" : `Year ${heroParams.horizonYear}` },
+                { k: "Conservatism", v: heroParams.conservatism.charAt(0).toUpperCase() + heroParams.conservatism.slice(1) },
+                { k: "Revenue growth p.a.", v: fmtPct(heroParams.revenueGrowth) },
+                { k: "Digital fee compression p.a.", v: fmtPct(heroParams.feeCompression) },
+                { k: "AI adoption realised", v: fmtPct(heroParams.adoptionRate) },
+                { k: "Avg loaded cost / head", v: fmtMoneyShort(heroParams.loadedCostPerHead) },
+                { k: "AI / tooling spend p.a.", v: fmtMoneyShort(heroParams.aiSpendPerYear) },
+                { k: "Owner pay in costs", v: heroParams.ownerCompInOpex ? `Yes · ${fmtMoneyShort(heroParams.ownerComp)}` : "No" },
+              ].map((d) => (
+                <div key={d.k} className="report-avoid rounded-lg border border-rule bg-surface p-2.5">
+                  <div className="text-[9px] font-semibold uppercase leading-tight tracking-wide text-ink-300">{d.k}</div>
+                  <div className="tnum mt-0.5 text-[13px] font-bold text-ink-900">{d.v}</div>
+                </div>
+              ))}
+            </div>
+          </div>
         </div>
       </section>
 
@@ -274,14 +364,14 @@ export default function Report() {
           <Stat label="Headcount" value={`~${model.zeroFte.toFixed(1)}`} sub={`from ${model.today.toFixed(0)} today`} />
         </div>
         <div className="report-avoid mt-4 rounded-xl border border-rule bg-surface p-4">
-          <div className="eyebrow mb-2">Annual net profit — Zero vs Status Quo</div>
-          <ProfitLines
-            years={YEARS}
-            series={[
-              { key: "z", label: "Agency Zero", color: "gold", values: model.proj.map((p) => p.z) },
-              { key: "s", label: "Status Quo", color: "neg", values: model.proj.map((p) => p.s) },
-            ]}
-          />
+          <div className="mb-2 flex items-center justify-between">
+            <div className="eyebrow">Annual net profit — Zero vs Status Quo</div>
+            <div className="flex gap-3 text-[10px] text-ink-500">
+              <span className="flex items-center gap-1"><span className="h-2 w-3 rounded-sm" style={{ background: "#9A7100" }} /> Agency Zero</span>
+              <span className="flex items-center gap-1"><span className="h-2 w-3 rounded-sm" style={{ background: "#A33D2E" }} /> Status Quo</span>
+            </div>
+          </div>
+          <MiniLines years={YEARS} z={model.proj.map((p) => p.z)} s={model.proj.map((p) => p.s)} />
           <p className="mt-2 text-[11px] text-ink-500">The gap between the lines is the annual cost of doing nothing — it opens as digital fees compress and costs stay put.</p>
         </div>
 

@@ -85,6 +85,11 @@ input[type="range"]::-moz-range-thumb {
 @media print {
   .report {
     page: report;
+    /* @page owns the margins in print — drop the screen padding/centering so we
+       don't double up and push content off the page */
+    max-width: none !important;
+    margin: 0 !important;
+    padding: 0 !important;
   }
   /* hide everything on screen chrome; only the report prints */
   .report-noprint {
@@ -101,6 +106,13 @@ input[type="range"]::-moz-range-thumb {
   .report-avoid {
     break-inside: avoid;
     page-break-inside: avoid;
+  }
+  /* keep a heading attached to what follows it */
+  .report h1,
+  .report h2,
+  .report h3 {
+    break-after: avoid;
+    page-break-after: avoid;
   }
   /* let backgrounds/colours print */
   .report,
