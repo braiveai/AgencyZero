@@ -45,16 +45,43 @@ export function hasSnapshot(s: SavedScenario): boolean {
   return !!s.params.ctx?.stages?.length && !!s.params.ctx?.staff?.length;
 }
 
+// One-shot handoff for the Model page: the exact slider params of a restored
+// scenario, so the dials (growth, adoption, horizon, costs, owner-comp, per-stage
+// FTE) match the run — not the default preset the Model page would otherwise seed.
+const PENDING_KEY = "az_pending_model_params";
+
+export function stashModelParams(params: ScenarioParams) {
+  if (typeof window !== "undefined") {
+    window.sessionStorage.setItem(PENDING_KEY, JSON.stringify(params));
+  }
+}
+
+/** Read and clear the pending model params (null if none). */
+export function takeModelParams(): ScenarioParams | null {
+  if (typeof window === "undefined") return null;
+  const raw = window.sessionStorage.getItem(PENDING_KEY);
+  if (!raw) return null;
+  window.sessionStorage.removeItem(PENDING_KEY);
+  try {
+    return JSON.parse(raw) as ScenarioParams;
+  } catch {
+    return null;
+  }
+}
+
 /**
- * Restore a saved scenario's frozen ctx (stages + staff + assumptions) back into
- * the live Workshop + Confirm stores, so the whole unified app reflects exactly
- * what this scenario was built on. Returns true if it restored anything.
+ * Restore a saved scenario as the live model. Its frozen ctx (stages + staff +
+ * assumptions) goes into the Workshop + Confirm stores — driving Rebuild, Org,
+ * Horizons, Start and the Deck — and its slider params are stashed for the Model
+ * page, so every screen reflects exactly what this scenario was built on.
+ * Returns true if it restored anything.
  */
 export function restoreScenarioToModel(s: SavedScenario): boolean {
   const ctx = s.params.ctx;
   if (!ctx?.stages?.length || !ctx?.staff?.length) return false;
   saveWorkshop({ stages: ctx.stages, staff: ctx.staff, reviewed: [] });
   if (ctx.assumptions) saveAssumptions(ctx.assumptions);
+  stashModelParams(s.params);
   return true;
 }
 

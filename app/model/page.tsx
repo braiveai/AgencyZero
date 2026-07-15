@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import clsx from "clsx";
 import {
   deriveZeroFteByStage,
@@ -12,6 +12,7 @@ import {
 } from "@/lib/model/engine";
 import { defaultParams, makePresets } from "@/lib/model/presets";
 import { useWorkshopCtx } from "@/lib/model/useWorkshopCtx";
+import { takeModelParams } from "@/lib/scenario-store";
 import { fmtMoney, fmtMoneyShort, fmtPct } from "@/lib/format";
 import { PageHead, Toggle } from "@/components/ui";
 import { saveScenario } from "@/lib/scenario-store";
@@ -64,9 +65,22 @@ export default function ModelPage() {
   const [saveName, setSaveName] = useState("");
   const [saved, setSaved] = useState(false);
 
-  // Reseed from the (possibly edited) Workshop + assumptions once they load.
-  // `ctx` is stable between loads, so this doesn't clobber live slider edits.
-  useEffect(() => setParams(defaultParams(a, ctx)), [ctx, a]);
+  // If we arrived here from "Load into Workshop", the restored scenario's exact
+  // sliders are waiting — apply them once and then leave the model alone (only
+  // "Reset to derived" re-derives). Otherwise reseed from the edited Workshop +
+  // assumptions as they load. `ctx` is stable between loads, so a normal reseed
+  // doesn't clobber live slider edits.
+  const restoredRef = useRef(false);
+  useEffect(() => {
+    if (restoredRef.current) return;
+    const pending = takeModelParams();
+    if (pending) {
+      restoredRef.current = true;
+      setParams(pending);
+      return;
+    }
+    setParams(defaultParams(a, ctx));
+  }, [ctx, a]);
 
   const update = (patch: Partial<ScenarioParams>) => setParams((p) => ({ ...p, ...patch }));
 

@@ -35,8 +35,8 @@ export default function Scenarios() {
   const a = ctx.assumptions;
 
   function loadIntoModel(s: SavedScenario) {
-    if (!confirm(`Make "${s.name}" the live model? This replaces the current Workshop stages, staff and assumptions with this snapshot — every screen will reflect it.`)) return;
-    if (restoreScenarioToModel(s)) router.push("/rebuild");
+    if (!confirm(`Make "${s.name}" the live model? This replaces the current Workshop stages, staff, assumptions and Model sliders with this snapshot — every screen will reflect it.`)) return;
+    if (restoreScenarioToModel(s)) router.push("/model");
   }
 
   const presets = makePresets("base", 3, a, ctx);
