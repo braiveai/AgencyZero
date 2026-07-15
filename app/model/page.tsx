@@ -12,7 +12,7 @@ import {
 } from "@/lib/model/engine";
 import { defaultParams, makePresets } from "@/lib/model/presets";
 import { useWorkshopCtx } from "@/lib/model/useWorkshopCtx";
-import { loadActiveModel, saveActiveModel } from "@/lib/scenario-store";
+import { clearActiveModel, loadActiveModel, saveActiveModel } from "@/lib/scenario-store";
 import { fmtMoney, fmtMoneyShort, fmtPct } from "@/lib/format";
 import { PageHead, Toggle } from "@/components/ui";
 import { saveScenario } from "@/lib/scenario-store";
@@ -84,6 +84,14 @@ export default function ModelPage() {
 
   const setConservatism = (c: Conservatism) =>
     setParams((p) => ({ ...p, conservatism: c, fteByStage: deriveZeroFteByStage(c, ctx) }));
+
+  // Full reset: drop any loaded scenario and re-derive every dial from the current
+  // Workshop + Confirm assumptions, then let the page track them again.
+  const resetToDerived = () => {
+    clearActiveModel();
+    lockedRef.current = false;
+    setParams(defaultParams(a, ctx));
+  };
 
   const banded = runModelBanded(params);
   const out = banded.base;
@@ -173,7 +181,7 @@ export default function ModelPage() {
           <div className="card p-5">
             <div className="mb-1 flex items-center justify-between">
               <div className="eyebrow">Team size per stage — the target org</div>
-              <button onClick={() => setConservatism(params.conservatism)} className="text-[11px] font-semibold text-accent-dark hover:underline">
+              <button onClick={resetToDerived} className="text-[11px] font-semibold text-accent-dark hover:underline">
                 Reset to derived
               </button>
             </div>

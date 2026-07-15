@@ -3,10 +3,9 @@
 import { useEffect, useMemo, useState, type ReactNode } from "react";
 import { useRouter } from "next/navigation";
 import clsx from "clsx";
-import { stages } from "@/lib/model/processes";
-import { staff } from "@/lib/model/staff";
 import { runModel, totalTodayFte, totalZeroFte, type DataCtx } from "@/lib/model/engine";
 import { makePresets } from "@/lib/model/presets";
+import { useWorkshopCtx } from "@/lib/model/useWorkshopCtx";
 import {
   defaultAssumptions,
   loadAssumptions,
@@ -86,7 +85,10 @@ export default function Confirm() {
   useEffect(() => { setA(loadAssumptions()); setReady(true); }, []);
   useEffect(() => { if (ready) saveAssumptions(a); }, [a, ready]);
 
-  const ctx = useMemo<DataCtx>(() => ({ stages, staff, assumptions: a }), [a]);
+  // Preview against the loaded Workshop org, but with THIS page's live-edited
+  // assumptions — so the impact numbers match the rest of the app, not the seed.
+  const wctx = useWorkshopCtx();
+  const ctx = useMemo<DataCtx>(() => ({ stages: wctx.stages, staff: wctx.staff, assumptions: a }), [wctx, a]);
   const set = (patch: Partial<Assumptions>) => setA((p) => ({ ...p, ...patch }));
   const setF = (patch: Partial<Assumptions["financials"]>) => setA((p) => ({ ...p, financials: { ...p.financials, ...patch } }));
   const setR = (patch: Partial<Assumptions["rates"]>) => setA((p) => ({ ...p, rates: { ...p.rates, ...patch } }));
@@ -96,8 +98,8 @@ export default function Confirm() {
   // live impact
   const impact = useMemo(() => {
     const zeroFte = totalZeroFte("base", ctx);
-    const zero = runModel(makePresets("base", 3, a).find((p) => p.key === "agency-zero")!.params);
-    const sq = runModel(makePresets("base", 3, a).find((p) => p.key === "status-quo")!.params);
+    const zero = runModel(makePresets("base", 3, a, ctx).find((p) => p.key === "agency-zero")!.params);
+    const sq = runModel(makePresets("base", 3, a, ctx).find((p) => p.key === "status-quo")!.params);
     return { zeroFte, zeroProfit: zero.profit, sqProfit: sq.profit, todayFte: totalTodayFte(ctx) };
   }, [a, ctx]);
 
