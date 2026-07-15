@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import clsx from "clsx";
 import { rates } from "@/lib/model/baseline";
@@ -69,6 +69,9 @@ export default function ValueChainWorkshop() {
   const [newStaff, setNewStaff] = useState<{ label: string; group: StaffGroup }>({ label: "", group: "digital" });
   const [addProcFor, setAddProcFor] = useState<string | null>(null);
   const [newProcLabel, setNewProcLabel] = useState("");
+  const [editingStage, setEditingStage] = useState<string | null>(null);
+  const [dragOverProc, setDragOverProc] = useState<string | null>(null);
+  const dragSrc = useRef<{ stageId: string; index: number } | null>(null);
 
   useEffect(() => {
     const s = loadWorkshop();
@@ -100,6 +103,19 @@ export default function ValueChainWorkshop() {
     setState((s) => ({ ...s, stages: s.stages.map((st) => ({ ...st, processes: st.processes.filter((p) => p.id !== procId) })), reviewed: s.reviewed.filter((x) => x !== procId) }));
   const toggleReviewed = (procId: string) =>
     setState((s) => ({ ...s, reviewed: s.reviewed.includes(procId) ? s.reviewed.filter((x) => x !== procId) : [...s.reviewed, procId] }));
+  const renameStage = (stageId: string, label: string) =>
+    setState((s) => ({ ...s, stages: s.stages.map((st) => (st.id === stageId ? { ...st, label } : st)) }));
+  const moveProc = (stageId: string, from: number, to: number) =>
+    setState((s) => ({
+      ...s,
+      stages: s.stages.map((st) => {
+        if (st.id !== stageId || from === to) return st;
+        const ps = [...st.processes];
+        const [m] = ps.splice(from, 1);
+        ps.splice(to, 0, m);
+        return { ...st, processes: ps };
+      }),
+    }));
   const addProc = (stageId: string) => {
     const label = newProcLabel.trim();
     if (!label) return;
@@ -198,31 +214,58 @@ export default function ValueChainWorkshop() {
           const sZero = fteZeroForStage(stage, "base", ctx, weights);
           return (
             <div key={stage.id} className="card overflow-hidden">
-              <button onClick={() => setOpenStages((o) => ({ ...o, [stage.id]: !o[stage.id] }))} className="flex w-full items-center justify-between px-5 py-3 text-left">
+              <div onClick={() => setOpenStages((o) => ({ ...o, [stage.id]: !o[stage.id] }))} className="flex w-full cursor-pointer items-center justify-between px-5 py-3 text-left">
                 <div className="flex items-baseline gap-3">
                   <span className="eyebrow">{stage.order}</span>
-                  <span className="text-[15px] font-bold text-ink-900">{stage.label}</span>
+                  {editingStage === stage.id ? (
+                    <input
+                      autoFocus
+                      value={stage.label}
+                      onClick={(e) => e.stopPropagation()}
+                      onChange={(e) => renameStage(stage.id, e.target.value)}
+                      onBlur={() => setEditingStage(null)}
+                      onKeyDown={(e) => e.key === "Enter" && setEditingStage(null)}
+                      className="rounded border border-ink-300 bg-paper px-1.5 py-0.5 text-[15px] font-bold text-ink-900 outline-none"
+                    />
+                  ) : (
+                    <span
+                      className="rounded px-0.5 text-[15px] font-bold text-ink-900 hover:bg-rule_soft"
+                      title="Double-click to rename this stage"
+                      onDoubleClick={(e) => { e.stopPropagation(); setEditingStage(stage.id); }}
+                    >
+                      {stage.label}
+                    </span>
+                  )}
                   <span className="hidden text-[12px] text-ink-300 sm:inline">{stage.covers}</span>
                 </div>
                 <div className="flex items-center gap-3 text-[13px]">
                   <span className="tnum text-ink-300">{fmtNum(sToday)} → <b className="text-accent-dark">{fmtNum(sZero)}</b></span>
                   <span className="text-ink-300">{open ? "▾" : "▸"}</span>
                 </div>
-              </button>
+              </div>
 
               {open && (
                 <div className="border-t border-rule">
-                  {stage.processes.map((p) => {
+                  {stage.processes.map((p, pIdx) => {
                     const tFte = todayFteForProcess(p, ctx, weights);
                     const zFte = zeroFteForProcess(p, "base", ctx, weights);
                     const reviewed = state.reviewed.includes(p.id);
                     const expanded = expandedProc === p.id;
                     const human = p.automatability === "none" || p.automatability === "some";
                     return (
-                      <div key={p.id} className={clsx("border-b border-rule_soft", !p.required && "opacity-50")}>
+                      <div
+                        key={p.id}
+                        draggable
+                        onDragStart={(e) => { dragSrc.current = { stageId: stage.id, index: pIdx }; e.dataTransfer.effectAllowed = "move"; }}
+                        onDragOver={(e) => { if (dragSrc.current?.stageId === stage.id) { e.preventDefault(); setDragOverProc(p.id); } }}
+                        onDrop={(e) => { e.preventDefault(); const src = dragSrc.current; if (src && src.stageId === stage.id) moveProc(stage.id, src.index, pIdx); dragSrc.current = null; setDragOverProc(null); }}
+                        onDragEnd={() => { dragSrc.current = null; setDragOverProc(null); }}
+                        className={clsx("border-b border-rule_soft", !p.required && "opacity-50", dragOverProc === p.id && "border-t-2 border-t-accent bg-accent-wash/30")}
+                      >
                         {/* one calm summary line — click to open */}
                         <div className="flex cursor-pointer items-center justify-between gap-3 px-5 py-2.5 hover:bg-rule_soft/40" onClick={() => setExpandedProc(expanded ? null : p.id)}>
                           <div className="flex min-w-0 items-center gap-2">
+                            <span className="shrink-0 cursor-grab select-none text-ink-200 hover:text-ink-400" title="Drag to reorder" onClick={(e) => e.stopPropagation()}>⠿</span>
                             <button onClick={(e) => { e.stopPropagation(); toggleReviewed(p.id); }} title="Mark reviewed" className={clsx("flex h-4 w-4 shrink-0 items-center justify-center rounded border text-[10px]", reviewed ? "border-positive bg-positive text-paper" : "border-rule text-transparent")}>✓</button>
                             <span className="truncate text-[14px] font-semibold text-ink-900">{p.label}</span>
                             <span className="cursor-help text-ink-200" title={p.description}>ⓘ</span>
@@ -240,6 +283,14 @@ export default function ValueChainWorkshop() {
 
                         {expanded && (
                           <div className="space-y-3 px-5 pb-4 pl-11">
+                            <div className="flex flex-col gap-1">
+                              <span className="text-[11px] text-ink-300">Process name</span>
+                              <input
+                                value={p.label}
+                                onChange={(e) => mutateProc(p.id, { label: e.target.value })}
+                                className="w-full max-w-md rounded-lg border border-rule bg-paper px-2 py-1.5 text-[13px] font-semibold text-ink-900 outline-none focus:border-ink-300"
+                              />
+                            </div>
                             <div className="flex flex-wrap items-center gap-x-5 gap-y-2">
                               <div className="flex items-center gap-1.5">
                                 <span className="text-[11px] text-ink-300">AI can take</span>
@@ -315,7 +366,7 @@ export default function ValueChainWorkshop() {
       </div>
 
       <p className="mt-5 text-[11px] leading-relaxed text-ink-300">
-        Everything here is a strawman to correct in the room. Each person's time splits across the processes they're on, weighted by "time", so the map reconciles to your roster — no hour estimates. Autosaves on this device; Reset restores the seed. "Run the model" saves this as a <b>Workshop</b> scenario next to the presets on the Scenarios screen.
+        Everything here is a strawman to correct in the room. <b>Drag ⠿ to reorder a process, click a stage or process name to rename it.</b> Each person's time splits across the processes they're on, weighted by "time", so the map reconciles to your roster — no hour estimates. Autosaves &amp; syncs; Reset restores the seed. "Run the model" saves this as a <b>Workshop</b> scenario next to the presets on the Scenarios screen.
       </p>
     </div>
   );

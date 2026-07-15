@@ -21,6 +21,17 @@ export function defaultWorkshop(): WorkshopState {
   return { stages: deepClone(defaultStages), staff: deepClone(defaultStaff), reviewed: [] };
 }
 
+/** Non-destructively add any NEW seed stages (by id) missing from a saved session,
+ *  preserving the saved order and edits. Keeps sessions current when the template grows. */
+function withNewSeedStages(state: WorkshopState): WorkshopState {
+  const have = new Set(state.stages.map((s) => s.id));
+  const additions = defaultStages.filter((s) => !have.has(s.id)).map(deepClone);
+  if (additions.length === 0) return state;
+  // insert each new stage at its seed position (order), so Stage 0 lands at the front
+  const merged = [...state.stages, ...additions].sort((x, y) => x.order - y.order);
+  return { ...state, stages: merged };
+}
+
 export function loadWorkshop(): WorkshopState {
   if (typeof window === "undefined") return defaultWorkshop();
   try {
@@ -28,7 +39,7 @@ export function loadWorkshop(): WorkshopState {
     if (!raw) return defaultWorkshop();
     const s = JSON.parse(raw) as WorkshopState;
     if (!s.stages || !s.staff) return defaultWorkshop();
-    return { ...s, reviewed: s.reviewed ?? [] };
+    return withNewSeedStages({ ...s, reviewed: s.reviewed ?? [] });
   } catch {
     return defaultWorkshop();
   }
@@ -50,7 +61,7 @@ export function resetWorkshop(): WorkshopState {
 export async function pullWorkshop(): Promise<WorkshopState | null> {
   const r = await pullRemote<WorkshopState>(RK);
   if (!r || !r.stages || !r.staff) return null;
-  return { ...r, reviewed: r.reviewed ?? [] };
+  return withNewSeedStages({ ...r, reviewed: r.reviewed ?? [] });
 }
 
 export function exportWorkshop(state: WorkshopState): string {

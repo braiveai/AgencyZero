@@ -17,6 +17,19 @@ import type { Stage } from "./types";
 
 export const stages: Stage[] = [
   {
+    id: "brand",
+    order: 0,
+    label: "Brand",
+    covers: "Sunny's own marketing, brand partnerships, thought leadership — the growth engine before a client exists",
+    fteToday: { value: 0.75, confidence: "assumed", tolerance: 0.2 },
+    processes: [
+      { id: "own-marketing", label: "Own marketing & content", description: "Sunny's own social, content, website and newsletters — the agency marketing itself.", required: true, staffIds: ["strat-hybrid", "sales-internal", "dig-ad-1"], automatability: "most", intensity: "normal", escalation: null, clientFacing: false, tools: ["ceed"] },
+      { id: "brand-partnerships", label: "Brand partnerships", description: "Co-marketing, sponsorships and strategic partnerships that raise Sunny's profile.", required: true, staffIds: ["ceo", "strat-hybrid"], automatability: "none", intensity: "normal", escalation: null, clientFacing: true, tools: [] },
+      { id: "thought-leadership", label: "Thought leadership & PR", description: "Speaking, articles, media commentary — positioning Sunny as the expert.", required: true, staffIds: ["ceo", "strat-hybrid"], automatability: "some", intensity: "normal", escalation: null, clientFacing: true, tools: ["architect-search"] },
+      { id: "awards-submissions", label: "Awards & submissions", description: "Entering and writing up industry awards.", required: true, staffIds: ["strat-hybrid", "dig-ad-2"], automatability: "most", intensity: "light", escalation: null, clientFacing: false, tools: ["architect-search"] },
+    ],
+  },
+  {
     id: "win",
     order: 1,
     label: "Win",
