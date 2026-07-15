@@ -45,28 +45,28 @@ export function hasSnapshot(s: SavedScenario): boolean {
   return !!s.params.ctx?.stages?.length && !!s.params.ctx?.staff?.length;
 }
 
-// One-shot handoff for the Model page: the exact slider params of a restored
-// scenario, so the dials (growth, adoption, horizon, costs, owner-comp, per-stage
-// FTE) match the run — not the default preset the Model page would otherwise seed.
-const PENDING_KEY = "az_pending_model_params";
+// The ACTIVE model — the slider params currently driving the app (growth,
+// adoption, horizon, costs, owner-comp, per-stage FTE). Persisted so the Model
+// page reopens where you left it and the Report shows the scenario you were in,
+// not a derived preset. Set on restore + autosaved as you move the sliders.
+const ACTIVE_KEY = "az_active_model_v1";
 
-export function stashModelParams(params: ScenarioParams) {
-  if (typeof window !== "undefined") {
-    window.sessionStorage.setItem(PENDING_KEY, JSON.stringify(params));
-  }
+export function saveActiveModel(params: ScenarioParams) {
+  if (typeof window !== "undefined") window.localStorage.setItem(ACTIVE_KEY, JSON.stringify(params));
 }
 
-/** Read and clear the pending model params (null if none). */
-export function takeModelParams(): ScenarioParams | null {
+export function loadActiveModel(): ScenarioParams | null {
   if (typeof window === "undefined") return null;
-  const raw = window.sessionStorage.getItem(PENDING_KEY);
-  if (!raw) return null;
-  window.sessionStorage.removeItem(PENDING_KEY);
   try {
-    return JSON.parse(raw) as ScenarioParams;
+    const raw = window.localStorage.getItem(ACTIVE_KEY);
+    return raw ? (JSON.parse(raw) as ScenarioParams) : null;
   } catch {
     return null;
   }
+}
+
+export function clearActiveModel() {
+  if (typeof window !== "undefined") window.localStorage.removeItem(ACTIVE_KEY);
 }
 
 /**
@@ -81,7 +81,7 @@ export function restoreScenarioToModel(s: SavedScenario): boolean {
   if (!ctx?.stages?.length || !ctx?.staff?.length) return false;
   saveWorkshop({ stages: ctx.stages, staff: ctx.staff, reviewed: [] });
   if (ctx.assumptions) saveAssumptions(ctx.assumptions);
-  stashModelParams(s.params);
+  saveActiveModel(s.params);
   return true;
 }
 

@@ -12,7 +12,7 @@ import {
 } from "@/lib/model/engine";
 import { defaultParams, makePresets } from "@/lib/model/presets";
 import { useWorkshopCtx } from "@/lib/model/useWorkshopCtx";
-import { takeModelParams } from "@/lib/scenario-store";
+import { loadActiveModel, saveActiveModel } from "@/lib/scenario-store";
 import { fmtMoney, fmtMoneyShort, fmtPct } from "@/lib/format";
 import { PageHead, Toggle } from "@/components/ui";
 import { saveScenario } from "@/lib/scenario-store";
@@ -65,18 +65,16 @@ export default function ModelPage() {
   const [saveName, setSaveName] = useState("");
   const [saved, setSaved] = useState(false);
 
-  // If we arrived here from "Load into Workshop", the restored scenario's exact
-  // sliders are waiting — apply them once and then leave the model alone (only
-  // "Reset to derived" re-derives). Otherwise reseed from the edited Workshop +
-  // assumptions as they load. `ctx` is stable between loads, so a normal reseed
-  // doesn't clobber live slider edits.
-  const restoredRef = useRef(false);
+  // If a scenario has been loaded as the active model, lock to it once (its exact
+  // dials) and don't clobber. Otherwise track the edited Workshop + assumptions as
+  // they load, reseeding the derived preset — the original behaviour.
+  const lockedRef = useRef(false);
   useEffect(() => {
-    if (restoredRef.current) return;
-    const pending = takeModelParams();
-    if (pending) {
-      restoredRef.current = true;
-      setParams(pending);
+    if (lockedRef.current) return;
+    const active = loadActiveModel();
+    if (active) {
+      lockedRef.current = true;
+      setParams(active);
       return;
     }
     setParams(defaultParams(a, ctx));
@@ -104,6 +102,7 @@ export default function ModelPage() {
   function doSave() {
     const name = saveName.trim() || `Scenario ${new Date().toLocaleDateString("en-AU")}`;
     saveScenario(name, params);
+    saveActiveModel(params); // make the just-saved model the active one (drives the Report)
     setSaved(true);
     setSaveName("");
     setTimeout(() => setSaved(false), 2000);
