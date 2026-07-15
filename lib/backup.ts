@@ -6,7 +6,7 @@
 // of the browser they were entered in — download a file, keep it, restore it on
 // any device.
 
-const KEYS = ["az_workshop_v1", "az_assumptions_v1", "az_scenarios_v1"] as const;
+const KEYS = ["az_workshop_v1", "az_assumptions_v1", "az_scenarios_v1", "az_active_model_v1"] as const;
 
 export interface SessionBackup {
   app: "agency-zero";

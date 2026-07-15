@@ -190,7 +190,7 @@ export default function Report() {
               </div>
               <div className="flex-1">
                 <div className="h-4 overflow-hidden rounded bg-rule">
-                  <div className="flex h-full items-center rounded bg-accent-dark px-1.5" style={{ width: `${Math.max(10, (p.freed / model.procs[0].freed) * 100)}%` }}>
+                  <div className="flex h-full items-center rounded bg-accent-dark px-1.5" style={{ width: `${Math.max(10, (p.freed / (model.procs[0]?.freed || 1)) * 100)}%` }}>
                     <span className="tnum text-[9px] font-bold text-paper">{fmtNum(p.freed)} FTE</span>
                   </div>
                 </div>

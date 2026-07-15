@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import clsx from "clsx";
 import {
   deriveZeroFteByStage,
@@ -93,11 +93,12 @@ export default function ModelPage() {
     setParams(defaultParams(a, ctx));
   };
 
-  const banded = runModelBanded(params);
+  const banded = useMemo(() => runModelBanded(params), [params]);
   const out = banded.base;
 
-  const statusQuo = runModel(
-    makePresets(params.conservatism, params.horizonYear, a, ctx).find((p) => p.key === "status-quo")!.params,
+  const statusQuo = useMemo(
+    () => runModel(makePresets(params.conservatism, params.horizonYear, a, ctx).find((p) => p.key === "status-quo")!.params),
+    [params.conservatism, params.horizonYear, a, ctx],
   );
 
   const deltaVsSq = out.profit - statusQuo.profit;
